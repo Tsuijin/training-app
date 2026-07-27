@@ -367,6 +367,12 @@
     box-shadow:3px 3px 0 var(--ink); text-shadow:1px 1px 0 rgba(0,0,0,0.25);
   }
   .danger-btn:active{transform:translate(2px,2px); box-shadow:0 0 0 var(--ink);}
+  .secondary-btn{
+    width:100%; box-sizing:border-box; font-size:15px; font-weight:900; color:var(--ink); background:var(--card);
+    border:2.5px solid var(--ink); padding:13px; border-radius:14px; text-align:center; display:block; cursor:pointer;
+    box-shadow:3px 3px 0 var(--ink);
+  }
+  .secondary-btn:active{transform:translate(2px,2px); box-shadow:0 0 0 var(--ink);}
 
   .item-card{
     background:var(--card); border:2.5px solid var(--ink); border-radius:16px; padding:14px; margin-bottom:10px;
@@ -618,6 +624,14 @@
     <div class="privacy-note">
       🔒 記録・1RM・種目設定はすべてこの iPhone 内（ブラウザのローカルキャッシュ）にのみ保存されます。サーバーには送信されません。ブラウザのキャッシュ／サイトデータを消去すると失われるのでご注意ください。
     </div>
+
+    <div class="eyebrow" style="margin-top:22px;">データのバックアップ</div>
+    <button class="secondary-btn" style="margin-top:10px;" onclick="exportData()">⬇️ 全データをエクスポート</button>
+    <label class="secondary-btn" style="margin-top:10px;">
+      ⬆️ 全データをインポート
+      <input type="file" accept="application/json" id="importFileInput" style="display:none;" onchange="handleImportFile(this)">
+    </label>
+    <div class="history-chip" style="margin-top:10px;">📦 キャッシュ削除やアプリ再インストールに備えて、定期的にエクスポートしたファイルを保存しておくのがおすすめです。インポートすると現在のデータはすべて上書きされます。</div>
 
     <button class="danger-btn" id="clearDataBtn" style="margin-top:16px;" onclick="clearAllData()">全データを消去</button>
   </div>
@@ -1999,6 +2013,42 @@ function saveExerciseEdit(){
   showToast("種目設定を保存しました");
 }
 let clearConfirmArmed = false;
+function exportData(){
+  const json = JSON.stringify(DATA, null, 2);
+  const blob = new Blob([json], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `training-app-backup-${todayKey().replace(/-/g,"")}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("データをエクスポートしました");
+}
+function handleImportFile(input){
+  const file = input.files && input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    input.value = "";
+    let parsed;
+    try{
+      parsed = JSON.parse(reader.result);
+      if(!parsed || !Array.isArray(parsed.exercises) || !parsed.exercises.length) throw new Error("invalid");
+    }catch(e){
+      showToast("インポートに失敗しました（ファイル形式を確認してください）");
+      return;
+    }
+    if(!confirm("現在のデータを上書きしてインポートします。よろしいですか？")) return;
+    DATA = migrateRecords(migrateTemplates(migrateExercises(parsed)));
+    save();
+    renderSettings();
+    renderAll();
+    showToast("データをインポートしました");
+  };
+  reader.readAsText(file);
+}
 function clearAllData(){
   const btn = document.getElementById("clearDataBtn");
   if(!clearConfirmArmed){
