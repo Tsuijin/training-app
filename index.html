@@ -53,11 +53,11 @@
   /* ---------- Header / Tabs ---------- */
   header.topbar{
     position:sticky; top:0; z-index:20;
-    padding:calc(6px + var(--safe-top)) 16px 0 16px;
+    padding:calc(2px + var(--safe-top)) 16px 0 16px;
     background:linear-gradient(180deg, rgba(255,255,255,0.97) 72%, rgba(255,255,255,0));
     backdrop-filter:blur(8px);
   }
-  .topbar-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .topbar-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
   .app-title{
     display:inline-block; font-size:11px; letter-spacing:1.5px; font-weight:900; color:#fff;
     background:linear-gradient(135deg, var(--accent), var(--accent-2));
@@ -91,7 +91,7 @@
   }
   .tab-pill.add{color:var(--text-faint); border-style:dashed; box-shadow:none;}
 
-  main{padding:6px 16px 150px 16px; max-width:520px; margin:0 auto;}
+  main{padding:2px 16px 150px 16px; max-width:520px; margin:0 auto;}
   section{margin-top:12px;}
 
   /* ---------- Cards ---------- */
@@ -111,21 +111,31 @@
     letter-spacing:0.5px; color:#fff;
     background:linear-gradient(135deg, var(--accent), var(--accent-2));
     padding:9px 16px; border-bottom:2.5px solid var(--ink);
+    margin:-15px -15px 12px -15px; border-top-left-radius:17px; border-top-right-radius:17px;
   }
 
-  /* Max card */
-  .max-head{display:flex; align-items:center; justify-content:space-between; gap:10px;}
-  .max-info-card{
-    position:relative; overflow:hidden;
-    background:var(--card-2); border:2.5px solid var(--ink); border-radius:16px;
-    box-shadow:2.5px 2.5px 0 var(--ink);
-  }
-  .max-info-body{padding:11px 14px 11px;}
+  /* Max + Goal meter row */
+  .max-goal-row{display:flex; align-items:center; gap:14px;}
+  .max-col{flex:1; min-width:0;}
   .max-value-row{display:flex; align-items:baseline; gap:6px; margin-top:0;}
-  .max-value{font-size:48px; font-weight:900; letter-spacing:-1px; font-style:italic; color:var(--ink); text-shadow:3px 3px 0 var(--yellow);}
-  .max-unit{font-size:16px; color:var(--accent-2); font-weight:900;}
-  .edit-dot{width:16px;height:16px;color:var(--accent-2); opacity:0.9;}
-  .goal-text{font-size:12px; font-weight:800; color:var(--accent-2); margin-top:5px;}
+  .max-value{font-size:44px; font-weight:900; letter-spacing:-1px; font-style:italic; color:var(--ink); text-shadow:3px 3px 0 var(--yellow);}
+  .max-unit{font-size:15px; color:var(--accent-2); font-weight:900;}
+  .edit-dot{width:15px;height:15px;color:var(--accent-2); opacity:0.9;}
+  .goal-text{font-size:11.5px; font-weight:800; color:var(--accent-2); margin-top:4px;}
+  .month-diff{
+    display:inline-flex; align-items:center; gap:3px; margin-top:6px;
+    font-size:10px; font-weight:900; padding:3px 8px; border-radius:999px;
+    border:1.5px solid var(--line-soft); color:var(--text-dim); background:var(--card);
+  }
+  .month-diff.up{color:#fff; background:var(--accent-2); border-color:var(--ink);}
+  .meter-col{flex:0 0 auto; width:84px; display:flex; flex-direction:column; align-items:center;}
+  .meter-compact-pct{font-size:14px; font-weight:900; font-style:italic; color:var(--accent-2);}
+  .meter-track-mini{
+    position:relative; width:100%; height:9px; margin-top:2px; border-radius:6px;
+    background:var(--card-2); border:2px solid var(--ink); overflow:hidden;
+  }
+  .meter-fill-mini{position:absolute; inset:0; width:0; background:linear-gradient(90deg, var(--accent-2), var(--accent)); transition:width .6s cubic-bezier(.22,1,.36,1);}
+  .meter-mini-endpoints{display:flex; justify-content:space-between; width:100%; margin-top:3px; font-size:8px; font-weight:800; color:var(--text-faint);}
   .percentile-badge{
     margin-top:12px; width:100%; box-sizing:border-box;
     background:linear-gradient(135deg, var(--card-2), var(--card));
@@ -139,35 +149,27 @@
   .percentile-main b{color:var(--accent-2); font-weight:900; font-size:1.18em; display:inline-block;}
   .percentile-sub{font-size:11.5px; font-weight:800; color:var(--text-dim); white-space:nowrap;}
 
-  /* 週間コンボパネル */
-  .combo-panel{
-    flex:0 0 auto; width:96px; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-    gap:2px; padding:10px 6px; border-radius:16px; border:2.5px solid var(--line-soft); background:var(--card-2);
-  }
-  .combo-panel.lit{
-    border-color:var(--ink); background:linear-gradient(160deg, #fff6d9, #ffdd55);
-    box-shadow:0 0 18px 3px rgba(255,207,31,0.6), 3px 3px 0 var(--ink);
-    animation:combo-pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes combo-pulse{0%,100%{transform:scale(1);} 50%{transform:scale(1.05);}}
-  .combo-flame{font-size:32px; filter:grayscale(1) opacity(0.35); line-height:1;}
-  .combo-panel.lit .combo-flame{filter:none; font-size:38px; animation:flame-flicker 1s ease-in-out infinite alternate; transform-origin:center bottom;}
   @keyframes flame-flicker{0%{opacity:.72; transform:scaleY(1);} 100%{opacity:1; transform:scaleY(1.1);}}
   @keyframes sparkle-twinkle{0%,100%{opacity:.15; transform:scale(.7);} 50%{opacity:1; transform:scale(1.2);}}
-  .combo-number{font-size:44px; font-weight:900; color:var(--text-faint); line-height:0.85; font-style:italic;}
-  .combo-panel.lit .combo-number{color:var(--accent-2); text-shadow:3px 3px 0 var(--ink);}
-  .combo-label{font-size:11px; font-weight:900; color:var(--text-dim); text-align:center; line-height:1.25; margin-top:3px; letter-spacing:0.5px;}
-  .combo-panel.lit .combo-label{color:var(--ink);}
-  .combo-week-dots{display:flex; gap:5px; margin-top:9px;}
-  .combo-dot{
-    width:24px; height:24px; border-radius:50%; border:2px solid var(--line-soft);
-    display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:900;
-    color:var(--text-faint); background:var(--card);
+
+  /* 週間コンボ（トップバー固定表示） */
+  .topbar-right{display:flex; align-items:center; gap:8px;}
+  .combo-strip{display:flex; align-items:center; gap:5px;}
+  .combo-chip{
+    display:flex; align-items:center; gap:3px;
+    background:var(--card); border:1.5px solid var(--line-soft); border-radius:10px;
+    padding:4px 7px 4px 6px; box-shadow:1.5px 1.5px 0 rgba(32,28,22,0.18);
   }
-  .combo-dot.done{
-    background:var(--yellow); color:#2a2100; border-color:var(--ink);
-    box-shadow:0 0 9px 1.5px rgba(255,207,31,0.7);
-  }
+  .combo-chip.lit{border-color:var(--ink); background:linear-gradient(160deg,#fff6d9,#ffe38a); box-shadow:1.5px 1.5px 0 var(--ink);}
+  .combo-chip-abbr{font-size:7px; font-weight:900; color:var(--text-faint); letter-spacing:0.3px;}
+  .combo-chip.lit .combo-chip-abbr{color:var(--text-dim);}
+  .combo-chip-flame{font-size:12px; line-height:1; filter:grayscale(1) opacity(0.4);}
+  .combo-chip.lit .combo-chip-flame{filter:none;}
+  .combo-chip-text{display:flex; align-items:baseline; gap:1px; line-height:1;}
+  .cc-num{font-size:14px; font-weight:900; font-style:italic; color:var(--text-faint);}
+  .combo-chip.lit .cc-num{color:var(--accent-2);}
+  .cc-unit{font-size:7px; font-weight:800; color:var(--text-faint); letter-spacing:0.2px;}
+  .combo-chip.lit .cc-unit{color:var(--text-dim);}
   .ring{width:78px;height:78px; flex:0 0 auto;}
   .ring circle{fill:none; stroke-width:9;}
   .ring .track{stroke:rgba(255,255,255,0.08);}
@@ -176,36 +178,6 @@
   .ring-sub{font-size:7px; font-weight:700; fill:var(--text-faint); letter-spacing:1px;}
 
   .chart-wrap{margin-top:12px; border-top:1px solid var(--line-soft); padding-top:10px;}
-
-  /* 目標達成メーター */
-  .meter-wrap{margin-top:12px; border-top:1px solid var(--line-soft); padding-top:10px;}
-  .meter-track{
-    position:relative; height:24px; margin:22px 4px 10px; border-radius:12px;
-    background:var(--card-2); border:2.5px solid var(--ink); overflow:visible;
-  }
-  .meter-fill{
-    position:absolute; top:-2.5px; left:-2.5px; bottom:-2.5px; height:auto;
-    background:linear-gradient(90deg, var(--accent-2), var(--accent));
-    border-radius:11px; border:2.5px solid var(--ink);
-    transition:width .6s cubic-bezier(.22,1,.36,1);
-  }
-  .meter-marker{position:absolute; top:50%; transform:translate(-50%,-50%); z-index:3;}
-  .meter-marker-dot{
-    width:20px; height:20px; border-radius:50%; background:#fff; border:3px solid var(--ink);
-    box-shadow:0 0 0 3px var(--yellow);
-  }
-  .meter-marker-flag{
-    position:absolute; bottom:26px; left:50%; transform:translateX(-50%);
-    background:var(--ink); color:#fff; font-size:11.5px; font-weight:900;
-    padding:4px 9px; border-radius:7px; white-space:nowrap;
-  }
-  .meter-marker-flag::after{
-    content:""; position:absolute; bottom:-5px; left:50%; transform:translateX(-50%);
-    border-left:5px solid transparent; border-right:5px solid transparent; border-top:5px solid var(--ink);
-  }
-  .meter-endpoints{display:flex; justify-content:space-between; padding:0 2px;}
-  .meter-endpoint-label{display:block; font-size:9px; font-weight:900; color:var(--text-faint); letter-spacing:1px;}
-  .meter-endpoint-value{display:block; font-size:15px; font-weight:900; color:var(--ink); margin-top:2px;}
   .chart-title{font-size:10px; font-weight:800; letter-spacing:2px; color:var(--text-faint); margin-bottom:6px;}
 
   /* 開閉セクション（GOAL METER / 立ち位置 / GROWTH LOG） */
@@ -617,7 +589,10 @@
 <header class="topbar">
   <div class="topbar-row">
     <div class="app-title">MAX <b>LOG</b></div>
-    <button class="icon-btn" onclick="openSettings()">⚙︎</button>
+    <div class="topbar-right">
+      <div class="combo-strip" id="comboStrip"></div>
+      <button class="icon-btn" onclick="openSettings()">⚙︎</button>
+    </div>
   </div>
   <div class="tabbar" id="tabbar"></div>
 </header>
@@ -657,6 +632,9 @@
   <div class="full-body">
     <label class="field-label">種目名</label>
     <input type="text" id="exNameInput" placeholder="例: デッドリフト">
+
+    <label class="field-label">短縮表記（コンボ表示用・全角2〜4文字目安）</label>
+    <input type="text" id="exAbbrInput" maxlength="4" placeholder="例: DL">
 
     <div class="row-2">
       <div>
@@ -1028,11 +1006,49 @@ function formatRankParts(p){
   const rounded = man>=100 ? Math.round(man) : Math.round(man*10)/10;
   return {num: rounded.toLocaleString("ja-JP"), unit:"万"};
 }
-function percentileBadgeHtml(exerciseName, weightKg){
+function rankFromWeight(table, w){
+  const p = interpPercentile(table, w);
+  return Math.max(1, Math.round(JP_ADULT_MALE_POPULATION * (p/100)));
+}
+function formatCount(n){
+  if(n<10000) return n.toLocaleString("ja-JP");
+  const man = n/10000;
+  const rounded = man>=100 ? Math.round(man) : Math.round(man*10)/10;
+  return rounded.toLocaleString("ja-JP")+"万";
+}
+/* maxHistory から約30日前に最も近い（それ以前で最新の）記録を探す */
+function valueMonthAgo(history){
+  if(!history || !history.length) return null;
+  const target = new Date(); target.setDate(target.getDate()-30);
+  const sorted = history.slice().sort((a,b)=> new Date(a.date)-new Date(b.date));
+  let candidate = null;
+  for(const h of sorted){
+    if(new Date(h.date) <= target) candidate = h; else break;
+  }
+  return candidate ? candidate.weight : null;
+}
+function monthDiffBadgeHtml(diff){
+  if(diff===null || diff===undefined) return "";
+  if(Math.abs(diff)<0.05) return `<span class="month-diff flat">→ 先月比 ±0kg</span>`;
+  const cls = diff>0 ? "up" : "down";
+  const arrow = diff>0 ? "↑" : "↓";
+  return `<span class="month-diff ${cls}">${arrow} 先月比 ${diff>0?"+":"-"}${fmt1(Math.abs(diff))}kg</span>`;
+}
+function rankDiffBadgeHtml(diff){
+  if(diff===null || diff===undefined) return "";
+  if(Math.abs(diff)<1) return `<span class="month-diff flat">→ 先月比 変化なし</span>`;
+  const cls = diff>0 ? "up" : "down";
+  const arrow = diff>0 ? "↑" : "↓";
+  return `<span class="month-diff ${cls}">${arrow} 先月比 ${formatCount(Math.abs(diff))}位 ${diff>0?"UP":"DOWN"}</span>`;
+}
+function percentileBadgeHtml(exerciseName, weightKg, history){
   const table = tableForExercise(exerciseName);
   if(!table || !weightKg) return "";
   const p = interpPercentile(table, weightKg);
   const rp = formatRankParts(p);
+  const monthAgoW = valueMonthAgo(history);
+  const rankNow = rankFromWeight(table, weightKg);
+  const rankDiff = monthAgoW!=null ? (rankFromWeight(table, monthAgoW) - rankNow) : null;
   return `<div class="percentile-badge">
     <div class="section-toggle ${collapseState.percentile?"open":""}" onclick="toggleSection('percentile')">
       <div class="percentile-label">日本人成人男性の中での立ち位置（目安）</div>
@@ -1043,6 +1059,7 @@ function percentileBadgeHtml(exerciseName, weightKg){
         <div class="percentile-main"><span class="p-small">全</span>${JP_ADULT_MALE_POPULATION_NUM}<span class="p-small">万人中</span> <span class="p-small">約</span><b>${rp.num}</b><span class="p-small">${rp.unit}位</span></div>
         <div class="percentile-sub">（上位 約${formatPercentile(p)}）</div>
       </div>
+      ${rankDiffBadgeHtml(rankDiff)}
     </div>
   </div>`;
 }
@@ -1062,8 +1079,8 @@ function defaultData(){
   return {
     activeExerciseId: benchId,
     exercises: [
-      {id:benchId, name:"ベンチプレス", goal:120, start:80},
-      {id:squatId, name:"スクワット", goal:200, start:115},
+      {id:benchId, name:"ベンチプレス", goal:120, start:80, abbr:"BP"},
+      {id:squatId, name:"スクワット", goal:200, start:115, abbr:"SQ"},
     ],
     templates:{
       [benchId]:{
@@ -1136,8 +1153,16 @@ function migrateExercises(data){
       const cur = (data.currentMax||{})[ex.id] || 0;
       ex.start = Math.max(0, round25(cur*0.85));
     }
+    if(!ex.abbr) ex.abbr = defaultAbbr(ex.name);
   });
   return data;
+}
+/* 種目名から短縮表記のデフォルト値を推測する（ベンチ/スクワットは固定、それ以外は先頭2文字） */
+function defaultAbbr(name){
+  const n = (name||"").toLowerCase();
+  if(n.includes("ベンチ") || n.includes("bench")) return "BP";
+  if(n.includes("スクワット") || n.includes("squat")) return "SQ";
+  return (name||"??").slice(0,2).toUpperCase();
 }
 
 /* 旧形式（単一 percent）で保存されたデータを新形式（percentMin/Max・rpeMin/Max）へ移行 */
@@ -1190,7 +1215,7 @@ function estimateRPE(percent){
 function activeExercise(){ return DATA.exercises.find(e=>e.id===DATA.activeExerciseId) || DATA.exercises[0]; }
 
 /* GOAL METER・立ち位置・GROWTH LOGの開閉状態（普段は閉じておく） */
-let collapseState = { meter:false, percentile:false, growth:false };
+let collapseState = { percentile:false, growth:false };
 function toggleSection(key){
   collapseState[key] = !collapseState[key];
   renderMain();
@@ -1232,62 +1257,32 @@ function renderMain(){
   const ratio = Math.min(max/goal, 1);
   const remain = Math.max(0, round25(goal-max));
   const history = DATA.maxHistory[ex.id] || [];
-  const streak = comboStreak(ex.id);
-  const thisWeekSet = daysDoneInWeek(ex.id, weekStart(new Date()));
   const meterRange = (goal-start) || 1;
   const meterPercent = Math.max(0, Math.min(100, ((max-start)/meterRange)*100));
+  const monthAgoMax = valueMonthAgo(history);
+  const monthDiff = monthAgoMax!=null ? (max-monthAgoMax) : null;
 
   main.innerHTML = `
     <section class="card">
-      <div class="max-head">
-        <div class="max-info-card" style="flex:1;min-width:0;">
-          <div class="max-eyebrow-hero">🔥<span>現在のMAX</span></div>
-          <div class="max-info-body">
-            <div class="max-value-row" onclick="openMaxEditor()" style="cursor:pointer;">
-              <span class="max-value">${fmt1(max)}</span>
-              <span class="max-unit">kg</span>
-              <span class="edit-dot">✎</span>
-            </div>
-            <div class="goal-text">${max>=goal ? "🎉 目標達成！" : `あと ${fmt1(remain)}kg で ${fmt1(goal)}kg 達成`}</div>
+      <div class="max-eyebrow-hero">🔥<span>現在のMAX</span></div>
+      <div class="max-goal-row">
+        <div class="max-col">
+          <div class="max-value-row" onclick="openMaxEditor()" style="cursor:pointer;">
+            <span class="max-value">${fmt1(max)}</span>
+            <span class="max-unit">kg</span>
+            <span class="edit-dot">✎</span>
           </div>
+          <div class="goal-text">${max>=goal ? "🎉 目標達成！" : `あと ${fmt1(remain)}kg で ${fmt1(goal)}kg 達成`}</div>
+          ${monthDiffBadgeHtml(monthDiff)}
         </div>
-        <div class="combo-panel ${streak>0?"lit":""}">
-          <div class="combo-flame">🔥</div>
-          <div class="combo-number">${streak}</div>
-          <div class="combo-label">🔥週連続<br>COMBO！</div>
-          <div class="combo-week-dots">
-            ${["D1","D2","D3"].map(d=>`<span class="combo-dot ${thisWeekSet.has(d)?"done":""}">${d.replace("D","")}</span>`).join("")}
-          </div>
+        <div class="meter-col">
+          <div class="meter-compact-pct">${Math.round(meterPercent)}%</div>
+          <div class="meter-track-mini"><div class="meter-fill-mini" style="width:${meterPercent}%"></div></div>
+          <div class="meter-mini-endpoints"><span>${fmt1(start)}kg</span><span>${fmt1(goal)}kg</span></div>
         </div>
       </div>
 
-      <div class="meter-wrap">
-        <div class="section-toggle ${collapseState.meter?"open":""}" onclick="toggleSection('meter')">
-          <div class="chart-title">GOAL METER · 目標までの道のり</div>
-          <span class="section-toggle-arrow">▾</span>
-        </div>
-        <div class="section-body ${collapseState.meter?"open":""}">
-          <div class="meter-track">
-            <div class="meter-fill" style="width:${meterPercent}%"></div>
-            <div class="meter-marker" style="left:${meterPercent}%">
-              <div class="meter-marker-flag">${fmt1(max)}kg</div>
-              <div class="meter-marker-dot"></div>
-            </div>
-          </div>
-          <div class="meter-endpoints">
-            <div class="meter-endpoint">
-              <span class="meter-endpoint-label">START</span>
-              <span class="meter-endpoint-value">${fmt1(start)}kg</span>
-            </div>
-            <div class="meter-endpoint" style="text-align:right;">
-              <span class="meter-endpoint-label">GOAL</span>
-              <span class="meter-endpoint-value">${fmt1(goal)}kg</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      ${percentileBadgeHtml(ex.name, max)}
+      ${percentileBadgeHtml(ex.name, max, history)}
 
       <div class="chart-wrap">
         <div class="section-toggle ${collapseState.growth?"open":""}" onclick="toggleSection('growth')">
@@ -1455,7 +1450,20 @@ function comboStreak(exId){
   return streak;
 }
 
-function renderAll(){ renderTabs(); renderMain(); }
+function renderAll(){ renderTabs(); renderMain(); renderComboStrip(); }
+function renderComboStrip(){
+  const el = document.getElementById("comboStrip");
+  if(!el) return;
+  el.innerHTML = DATA.exercises.map(ex=>{
+    const streak = comboStreak(ex.id);
+    const lit = streak>0;
+    return `<div class="combo-chip ${lit?"lit":""}">
+      <span class="combo-chip-abbr">${escapeHtml(ex.abbr||defaultAbbr(ex.name))}</span>
+      <span class="combo-chip-flame">🔥</span>
+      <span class="combo-chip-text"><b class="cc-num">${streak}</b><span class="cc-unit">週連続</span></span>
+    </div>`;
+  }).join("");
+}
 function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 
 /* =========================================================================
@@ -1795,7 +1803,7 @@ function renderSettings(){
 }
 function addExercise(){
   const id = uid();
-  DATA.exercises.push({id, name:"新しい種目", goal:100, start:0});
+  DATA.exercises.push({id, name:"新しい種目", goal:100, start:0, abbr:"??"});
   DATA.templates[id] = {
     D1:{label:"Heavy Day", items:[]}, D2:{label:"Technique Day", items:[]}, D3:{label:"Variation Day", items:[]}
   };
@@ -1828,6 +1836,7 @@ function editExercise(id){
   const ex = DATA.exercises.find(e=>e.id===id);
   document.getElementById("exerciseEditTitle").textContent = ex.name;
   document.getElementById("exNameInput").value = ex.name;
+  document.getElementById("exAbbrInput").value = ex.abbr || defaultAbbr(ex.name);
   document.getElementById("exStartInput").value = ex.start ?? "";
   document.getElementById("exGoalInput").value = ex.goal||"";
   renderDayEditSeg();
@@ -1958,6 +1967,7 @@ function addItem(){
 function saveExerciseEdit(){
   const ex = DATA.exercises.find(e=>e.id===editState.exId);
   ex.name = document.getElementById("exNameInput").value.trim() || ex.name;
+  ex.abbr = document.getElementById("exAbbrInput").value.trim() || defaultAbbr(ex.name);
   const startVal = document.getElementById("exStartInput").value;
   if(startVal!=="") ex.start = parseFloat(startVal);
   ex.goal = parseFloat(document.getElementById("exGoalInput").value) || ex.goal;
