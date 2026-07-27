@@ -54,31 +54,31 @@
   header.topbar{
     position:sticky; top:0; z-index:20;
     padding:calc(2px + var(--safe-top)) 16px 0 16px;
-    background:linear-gradient(180deg, rgba(255,255,255,0.9) 55%, rgba(255,255,255,0));
+    background:linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 100%);
   }
   .topbar-row{position:relative; display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
 
   /* ガラスのような段階的ぼかし：ぼかし量が異なる複数レイヤーを重ねて、
-     端に近づくほどぼかしが強くなるグラデーションを疑似的に作る */
+     画面端に近いほどぼかしが強く、コンテンツに近いほど弱くなる（＝境界が見えない）グラデーションを疑似的に作る */
   .blur-stack{position:absolute; inset:0; pointer-events:none;}
   .blur-stack span{position:absolute; inset:0; display:block;}
   .blur-stack span:nth-child(1){
-    backdrop-filter:blur(0.5px); -webkit-backdrop-filter:blur(0.5px);
+    backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
     mask-image:linear-gradient(to bottom, black 0%, black 25%, transparent 37.5%);
     -webkit-mask-image:linear-gradient(to bottom, black 0%, black 25%, transparent 37.5%);
   }
   .blur-stack span:nth-child(2){
-    backdrop-filter:blur(1.5px); -webkit-backdrop-filter:blur(1.5px);
+    backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px);
     mask-image:linear-gradient(to bottom, transparent 12.5%, black 25%, black 50%, transparent 62.5%);
     -webkit-mask-image:linear-gradient(to bottom, transparent 12.5%, black 25%, black 50%, transparent 62.5%);
   }
   .blur-stack span:nth-child(3){
-    backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px);
+    backdrop-filter:blur(2px); -webkit-backdrop-filter:blur(2px);
     mask-image:linear-gradient(to bottom, transparent 37.5%, black 50%, black 75%, transparent 87.5%);
     -webkit-mask-image:linear-gradient(to bottom, transparent 37.5%, black 50%, black 75%, transparent 87.5%);
   }
   .blur-stack span:nth-child(4){
-    backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);
+    backdrop-filter:blur(0.5px); -webkit-backdrop-filter:blur(0.5px);
     mask-image:linear-gradient(to bottom, transparent 62.5%, black 75%);
     -webkit-mask-image:linear-gradient(to bottom, transparent 62.5%, black 75%);
   }
@@ -141,12 +141,12 @@
   /* Max + Goal meter：種目ごとに横並びの列 */
   .max-multi-row{display:flex; gap:12px;}
   .max-multi-col{flex:1; min-width:0;}
-  .max-multi-abbr{font-size:10px; font-weight:900; color:var(--text-faint); letter-spacing:1px; margin-bottom:2px;}
-  .max-value-side-row{display:flex; flex-wrap:wrap; align-items:flex-start; gap:2px 4px;}
-  .max-value-row{display:flex; align-items:baseline; gap:3px; margin-top:0; flex:0 0 auto; min-width:0;}
+  .max-multi-abbr{font-size:10px; font-weight:900; color:var(--text-faint); letter-spacing:1px; padding-top:1px;}
+  .max-multi-top-row{display:flex; align-items:flex-start; justify-content:space-between; gap:6px; margin-bottom:2px;}
+  .max-value-row{display:flex; align-items:baseline; gap:3px; margin-top:0; min-width:0;}
   .max-value{font-size:26px; font-weight:900; letter-spacing:-1px; font-style:italic; color:var(--ink); text-shadow:2px 2px 0 var(--yellow); white-space:nowrap;}
   .max-unit{font-size:12px; color:var(--accent-2); font-weight:900;}
-  .max-side-stack{display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:0 0 auto; margin-left:auto;}
+  .max-side-stack{display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:0 0 auto;}
   .goal-text{font-size:11px; font-weight:800; color:var(--accent-2); margin-top:4px;}
   .max-side-stack .goal-text{margin-top:0; white-space:nowrap;}
   .month-diff{
@@ -279,7 +279,7 @@
     position:fixed; left:0; right:0; bottom:0; z-index:15;
     max-width:520px; margin:0 auto; box-sizing:border-box;
     padding:18px 16px calc(16px + var(--safe-bottom));
-    background:linear-gradient(0deg, rgba(255,255,255,0.9) 45%, rgba(255,255,255,0));
+    background:linear-gradient(0deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 100%);
     pointer-events:none;
   }
   .cta-float-wrap .cta{position:relative; pointer-events:auto;}
@@ -1150,8 +1150,8 @@ function defaultData(){
       [squatId]:{
         D1:{label:"Heavy Day", items:[
           {id:uid(), name:"Max測定", sets:1, reps:1, mode:"percent", percentMin:90, percentMax:97.5, rpeMin:8, rpeMax:9, hint:"ウォーミングアップ兼・今日のコンディションを測る", isMaxTest:true},
-          {id:uid(), name:"メインスクワット", sets:5, reps:5, mode:"percent", percentMin:72.5, percentMax:77.5, rpeMin:6, rpeMax:8},
-          {id:uid(), name:"補助スクワット", variants:["フロントスクワット","ゴブレットスクワット"], sets:3, reps:8, mode:"fixed", rpeMin:5, rpeMax:6},
+          {id:uid(), name:"メインSQ", sets:5, reps:5, mode:"percent", percentMin:72.5, percentMax:77.5, rpeMin:6, rpeMax:8},
+          {id:uid(), name:"補助SQ", variants:["フロントSQ","ゴブレットSQ"], sets:3, reps:8, mode:"fixed", rpeMin:5, rpeMax:6},
         ]},
         D2:{label:"Technique Day", items:[
           {id:uid(), name:"テンポSQ", sets:3, reps:4, mode:"fixed", rpeMin:5, rpeMax:7},
@@ -1172,6 +1172,7 @@ function defaultData(){
     records:{ [benchId]:{}, [squatId]:{} },
     lastDay:{ [benchId]:"D1", [squatId]:"D1" },
     squatMenuV2: true,
+    squatNamesSQ: true,
   };
 }
 function seedHistory(start,end,n){
@@ -1191,7 +1192,7 @@ function load(){
     if(!raw) return defaultData();
     const parsed = JSON.parse(raw);
     if(!parsed.exercises || !parsed.exercises.length) return defaultData();
-    return migrateRecords(migrateTemplates(migrateSquatMenuV2(migrateExercises(parsed))));
+    return migrateRecords(migrateTemplates(migrateSquatNamesSQ(migrateSquatMenuV2(migrateExercises(parsed)))));
   }catch(e){ return defaultData(); }
 }
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }
@@ -1226,6 +1227,23 @@ function migrateSquatMenuV2(data){
     }
   }
   data.squatMenuV2 = true;
+  return data;
+}
+
+/* スクワット関連の種目名の「スクワット」表記をすべて「SQ」に統一する（一度だけ） */
+function migrateSquatNamesSQ(data){
+  if(data.squatNamesSQ) return data;
+  const squat = (data.exercises||[]).find(e=>e.abbr==="SQ" || (e.name||"").includes("スクワット"));
+  if(squat && data.templates && data.templates[squat.id]){
+    const rename = s => s ? s.replace(/スクワット/g, "SQ") : s;
+    Object.values(data.templates[squat.id]).forEach(day=>{
+      (day?.items||[]).forEach(it=>{
+        it.name = rename(it.name);
+        if(it.variants) it.variants = it.variants.map(rename);
+      });
+    });
+  }
+  data.squatNamesSQ = true;
   return data;
 }
 
@@ -1325,16 +1343,16 @@ function maxColumnHtml(ex){
   const monthDiff = monthAgoMax!=null ? (max-monthAgoMax) : null;
   return `
     <div class="max-multi-col">
-      <div class="max-multi-abbr">${escapeHtml(ex.abbr||defaultAbbr(ex.name))} ${escapeHtml(ex.name)}</div>
-      <div class="max-value-side-row">
-        <div class="max-value-row" onclick="event.stopPropagation(); openMaxEditor('${ex.id}')" style="cursor:pointer;">
-          <span class="max-value">${fmt1(max)}</span>
-          <span class="max-unit">kg</span>
-        </div>
+      <div class="max-multi-top-row">
+        <div class="max-multi-abbr">${escapeHtml(ex.name)}</div>
         <div class="max-side-stack">
           ${monthDiffBadgeHtml(monthDiff)}
           <div class="goal-text">${max>=goal ? "🎉 達成！" : `あと ${fmt1(remain)}kg`}</div>
         </div>
+      </div>
+      <div class="max-value-row" onclick="event.stopPropagation(); openMaxEditor('${ex.id}')" style="cursor:pointer;">
+        <span class="max-value">${fmt1(max)}</span>
+        <span class="max-unit">kg</span>
       </div>
       <div class="meter-col">
         <div class="meter-track-mini"><div class="meter-fill-mini" style="width:${meterPercent}%"></div></div>
