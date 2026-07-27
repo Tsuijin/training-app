@@ -227,8 +227,9 @@
     0%,100%{box-shadow:0 0 5px 0 rgba(255,207,31,0.35);}
     50%{box-shadow:0 0 13px 2px rgba(255,207,31,0.75);}
   }
-  .cal-badge{position:absolute; bottom:0; right:0; width:16px; height:16px;}
-  .cal-badge.double{width:18px; height:18px;}
+  .cal-badge-circle{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:82%; height:82%;}
+  .cal-day-num{position:relative; z-index:1;}
+  .cal-day.has-badge .cal-day-num{color:#fff;}
   .cal-legend{display:flex; gap:14px; margin-top:10px; flex-wrap:wrap;}
   .legend-item{display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-dim);}
   .legend-dot{width:7px;height:7px;border-radius:50%;}
@@ -1419,25 +1420,22 @@ function monthTitle(){
 
 /* その日に実施した種目ごとのバッジ（1種目なら単一の円、2種目なら二重の円：
    内側＝DATA.exercisesの先頭（BP想定）、外側＝2番目（SQ想定）） */
+/* その日に実施した種目の色で、日付を囲う大きな丸を描く。
+   2種目とも実施した日は二重丸（外側＝DATA.exercisesの2番目/SQ想定、内側＝1番目/BP想定）。 */
 function calendarDayBadgeSvg(dateKey){
   const infos = DATA.exercises.map(ex=>{
     const recs = (DATA.records[ex.id]||{})[dateKey];
     if(!recs || !recs.length) return null;
-    return { abbr: ex.abbr||defaultAbbr(ex.name), color: DAY_COLORS[recs[0].day] };
+    return { color: DAY_COLORS[recs[0].day] };
   }).filter(Boolean);
   if(!infos.length) return "";
   if(infos.length===1){
-    return `<svg class="cal-badge" viewBox="0 0 24 24">
-      <circle cx="12" cy="12" r="11" fill="${infos[0].color}" stroke="#fff" stroke-width="1.2"/>
-      <text x="12" y="15.5" text-anchor="middle" font-size="8.5" font-weight="900" fill="#fff">${escapeHtml(infos[0].abbr)}</text>
-    </svg>`;
+    return `<svg class="cal-badge-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${infos[0].color}"/></svg>`;
   }
   const inner = infos[0], outer = infos[1];
-  return `<svg class="cal-badge double" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="11" fill="${outer.color}" stroke="#fff" stroke-width="1.2"/>
-    <circle cx="12" cy="12" r="6" fill="${inner.color}" stroke="#fff" stroke-width="1"/>
-    <text x="12" y="6.3" text-anchor="middle" font-size="4.3" font-weight="900" fill="#fff">${escapeHtml(outer.abbr)}</text>
-    <text x="12" y="14.7" text-anchor="middle" font-size="5.5" font-weight="900" fill="#fff">${escapeHtml(inner.abbr)}</text>
+  return `<svg class="cal-badge-circle double" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="11" fill="${outer.color}"/>
+    <circle cx="12" cy="12" r="7" fill="${inner.color}"/>
   </svg>`;
 }
 function renderCalendarCells(){
@@ -1452,9 +1450,10 @@ function renderCalendarCells(){
     const key = todayKey(dt);
     const isToday = key===todayKey();
     const comboWeek = DATA.exercises.some(ex=>isFullComboWeek(ex.id, weekStart(dt)));
-    cells += `<div class="cal-day ${isToday?"today":""} ${comboWeek?"combo-week":""}" onclick="openDayDetail('${key}', this)">
-      ${day}
-      ${calendarDayBadgeSvg(key)}
+    const badge = calendarDayBadgeSvg(key);
+    cells += `<div class="cal-day ${isToday?"today":""} ${comboWeek?"combo-week":""} ${badge?"has-badge":""}" onclick="openDayDetail('${key}', this)">
+      ${badge}
+      <span class="cal-day-num">${day}</span>
     </div>`;
   }
   return cells;
