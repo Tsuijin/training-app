@@ -174,10 +174,7 @@
   .section-toggle{display:flex; align-items:center; justify-content:space-between; cursor:pointer; -webkit-tap-highlight-color:transparent;}
   .section-toggle .chart-title{margin-bottom:0;}
   .section-toggle-arrow{font-size:11px; font-weight:900; color:var(--text-faint); margin-left:8px; transition:transform .15s ease;}
-  .section-toggle.open .section-toggle-arrow{transform:rotate(180deg);}
   .section-toggle:active{opacity:0.55;}
-  .section-body{display:none;}
-  .section-body.open{display:block; margin-top:10px;}
   .chart-row{display:flex; gap:8px; align-items:stretch;}
   .chart-yaxis{
     flex:0 0 auto; display:flex; flex-direction:column; justify-content:space-between;
@@ -659,6 +656,14 @@
 
     <button class="cta" style="margin-top:22px;" onclick="saveExerciseEdit()">保存する</button>
   </div>
+</div>
+
+<!-- ============ 立ち位置／GROWTH LOG ポップアップ ============ -->
+<div class="sheet-scrim" id="statsScrim" onclick="closeSheet('statsSheet')"></div>
+<div class="sheet" id="statsSheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-head"><h2 id="statsSheetTitle">詳細</h2><button class="close-btn" onclick="closeSheet('statsSheet')">閉じる</button></div>
+  <div class="sheet-body" id="statsSheetBody"></div>
 </div>
 
 <!-- ============ 1RM編集シート ============ -->
@@ -1219,13 +1224,6 @@ function estimateRPE(percent){
 }
 
 
-/* GOAL METER・立ち位置・GROWTH LOGの開閉状態（普段は閉じておく） */
-let collapseState = { percentile:false, growth:false };
-function toggleSection(key){
-  collapseState[key] = !collapseState[key];
-  renderMain();
-}
-
 /* =========================================================================
    描画
    ========================================================================= */
@@ -1285,27 +1283,16 @@ function renderMain(){
       </div>
 
       <div class="chart-wrap">
-        <div class="section-toggle ${collapseState.percentile?"open":""}" onclick="toggleSection('percentile')">
+        <div class="section-toggle" onclick="openStatsSheet('percentile')">
           <div class="chart-title">立ち位置 · 日本人成人男性の中で（目安）</div>
-          <span class="section-toggle-arrow">▾</span>
-        </div>
-        <div class="section-body ${collapseState.percentile?"open":""}">
-          ${DATA.exercises.map(ex=>percentileBlockHtml(ex)).join("")}
+          <span class="section-toggle-arrow">›</span>
         </div>
       </div>
 
       <div class="chart-wrap">
-        <div class="section-toggle ${collapseState.growth?"open":""}" onclick="toggleSection('growth')">
+        <div class="section-toggle" onclick="openStatsSheet('growth')">
           <div class="chart-title">GROWTH LOG · 過去1年間の推移</div>
-          <span class="section-toggle-arrow">▾</span>
-        </div>
-        <div class="section-body ${collapseState.growth?"open":""}">
-          ${DATA.exercises.map(ex=>`
-            <div class="growth-block">
-              <div class="growth-block-label">${escapeHtml(ex.abbr||defaultAbbr(ex.name))} ${escapeHtml(ex.name)}</div>
-              ${renderChart(DATA.maxHistory[ex.id]||[])}
-            </div>
-          `).join("")}
+          <span class="section-toggle-arrow">›</span>
         </div>
       </div>
     </section>
@@ -1318,6 +1305,25 @@ function renderMain(){
     </section>
   `;
   renderCalendarBody();
+}
+
+/* 現在のMAXカード内「立ち位置」「GROWTH LOG」タップ時のポップアップ表示 */
+function openStatsSheet(kind){
+  const title = document.getElementById("statsSheetTitle");
+  const body = document.getElementById("statsSheetBody");
+  if(kind==="percentile"){
+    title.textContent = "立ち位置 · 日本人成人男性の中で（目安）";
+    body.innerHTML = DATA.exercises.map(ex=>percentileBlockHtml(ex)).join("");
+  }else{
+    title.textContent = "GROWTH LOG · 過去1年間の推移";
+    body.innerHTML = DATA.exercises.map(ex=>`
+      <div class="growth-block">
+        <div class="growth-block-label">${escapeHtml(ex.abbr||defaultAbbr(ex.name))} ${escapeHtml(ex.name)}</div>
+        ${renderChart(DATA.maxHistory[ex.id]||[])}
+      </div>
+    `).join("");
+  }
+  openSheet("statsSheet");
 }
 
 function renderChart(history){
@@ -2396,6 +2402,7 @@ function setupSwipeToClose(sheetId){
   });
 }
 setupSwipeToClose("inputSheet");
+setupSwipeToClose("statsSheet");
 
 renderAll();
 </script>
