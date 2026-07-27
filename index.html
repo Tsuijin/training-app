@@ -416,6 +416,9 @@
     box-shadow:2px 2px 0 var(--ink);
   }
   .plan-item-sub{font-size:13.5px; color:var(--text-dim); margin-top:4px; line-height:1.6; font-weight:700;}
+  .plan-item-hint{font-size:11px; color:var(--text-faint); margin-top:6px; font-weight:800;}
+  .plan-item-detail{display:none;}
+  .plan-item-detail.open{display:block;}
   .rpe-chip{
     display:inline-block; font-size:11.5px; font-weight:900; padding:3px 9px; border-radius:6px;
     background:var(--yellow); color:var(--ink); margin-left:6px; border:1.5px solid var(--ink);
@@ -1651,10 +1654,25 @@ let inputState = { day:"D1", entries:[] };
 
 function openWorkoutInput(){
   const ex = activeExercise();
-  inputState.day = nextDay(ex.id);
-  buildInputEntries();
+  const draft = (DATA.drafts||{})[ex.id];
+  if(draft && draft.date===todayKey()){
+    inputState.day = draft.day;
+    inputState.entries = draft.entries;
+  }else{
+    if(draft){ delete DATA.drafts[ex.id]; save(); }
+    inputState.day = nextDay(ex.id);
+    buildInputEntries();
+  }
   renderInputSheet();
   openSheet("inputSheet");
+}
+/* 入力途中の内容を保存（シートを閉じても保持し、日付が変わったら破棄する） */
+function saveDraft(){
+  const ex = activeExercise();
+  if(!ex) return;
+  DATA.drafts = DATA.drafts || {};
+  DATA.drafts[ex.id] = { date: todayKey(), day: inputState.day, entries: inputState.entries };
+  save();
 }
 function buildInputEntries(){
   const ex = activeExercise();
@@ -1678,7 +1696,7 @@ function buildInputEntries(){
     return {
       name:initialName, variants: hasVariants ? it.variants.slice() : null,
       plannedText, rpeText, hint:it.hint||"", isMaxTest:!!it.isMaxTest,
-      mode:it.mode, hist, sets, completed:true, note:""
+      mode:it.mode, hist, sets, completed:false, note:""
     };
   });
 }
@@ -1719,29 +1737,33 @@ function renderInputSheet(){
           <div class="plan-item-name">${escapeHtml(e.name)} ${e.isMaxTest?`<span class="rpe-chip">⭐ Max測定</span>`:""}</div>
           ${e.variants ? `<div class="variant-seg">${e.variants.map((v,vi)=>`<button type="button" class="variant-btn ${v===e.name?"active":""}" onclick="selectVariant(${i},${vi})">${escapeHtml(v)}</button>`).join("")}</div>` : ""}
           <div class="plan-item-sub">${escapeHtml(e.plannedText)} ${e.rpeText?`<span class="rpe-chip">🎯 目標 RPE ${e.rpeText}</span>`:""}</div>
-          ${e.hint? `<div class="history-chip">💡 ${escapeHtml(e.hint)}</div>`:""}
-          ${e.isMaxTest? `<div class="history-chip">📌 ここに入力した重量が、そのまま現在の1RMとして更新されます</div>`:""}
-          ${e.hist.length
-            ? `<div class="history-chip prev">🕐 前回: <b>${e.hist[0].weight}kg</b>（${formatMD(e.hist[0].date)}）${e.hist.length>1?` ・その前: ${e.hist.slice(1).map(h=>h.weight+"kg").join(" / ")}`:""}</div>`
-            : `<div class="history-chip">🆕 この種目はまだ記録がありません</div>`}
+          ${!e.completed ? `<div class="plan-item-hint">☑️ チェックを入れると実績を入力できます</div>` : ""}
         </div>
       </div>
 
-      ${e.sets.map((s,si)=>`
-        <div class="set-row" data-entry="${i}" data-set="${si}">
-          <div class="set-flag">SET${si+1}</div>
-          <div class="set-field"><span class="flabel">重量kg</span><input type="text" inputmode="decimal" placeholder="RPE目安に" value="${s.weight}" oninput="updateSet(${i},${si},'weight',this.value)"></div>
-          <div class="set-field"><span class="flabel">reps</span><input type="number" value="${s.reps}" oninput="updateSet(${i},${si},'reps',this.value)"></div>
-          ${si>0 ? `<button type="button" class="set-copy-btn" onclick="copyFromPrevSet(${i},${si})">↓</button>` : `<div class="set-copy-placeholder"></div>`}
-        </div>
-      `).join("")}
+      <div class="plan-item-detail ${e.completed?"open":""}">
+        ${e.hint? `<div class="history-chip">💡 ${escapeHtml(e.hint)}</div>`:""}
+        ${e.isMaxTest? `<div class="history-chip">📌 ここに入力した重量が、そのまま現在の1RMとして更新されます</div>`:""}
+        ${e.hist.length
+          ? `<div class="history-chip prev">🕐 前回: <b>${e.hist[0].weight}kg</b>（${formatMD(e.hist[0].date)}）${e.hist.length>1?` ・その前: ${e.hist.slice(1).map(h=>h.weight+"kg").join(" / ")}`:""}</div>`
+          : `<div class="history-chip">🆕 この種目はまだ記録がありません</div>`}
 
-      <input type="text" class="note-input" placeholder="メモ（フォームの感触など）" value="${escapeHtml(e.note)}" oninput="updateEntry(${i},'note',this.value)">
+        ${e.sets.map((s,si)=>`
+          <div class="set-row" data-entry="${i}" data-set="${si}">
+            <div class="set-flag">SET${si+1}</div>
+            <div class="set-field"><span class="flabel">重量kg</span><input type="text" inputmode="decimal" placeholder="RPE目安に" value="${s.weight}" oninput="updateSet(${i},${si},'weight',this.value)"></div>
+            <div class="set-field"><span class="flabel">reps</span><input type="number" value="${s.reps}" oninput="updateSet(${i},${si},'reps',this.value)"></div>
+            ${si>0 ? `<button type="button" class="set-copy-btn" onclick="copyFromPrevSet(${i},${si})">↓</button>` : `<div class="set-copy-placeholder"></div>`}
+          </div>
+        `).join("")}
+
+        <input type="text" class="note-input" placeholder="メモ（フォームの感触など）" value="${escapeHtml(e.note)}" oninput="updateEntry(${i},'note',this.value)">
+      </div>
     </div>
   `).join("");
 }
-function switchInputDay(d){ inputState.day=d; buildInputEntries(); renderInputSheet(); }
-function toggleEntry(i){ inputState.entries[i].completed = !inputState.entries[i].completed; renderInputSheet(); }
+function switchInputDay(d){ inputState.day=d; buildInputEntries(); renderInputSheet(); saveDraft(); }
+function toggleEntry(i){ inputState.entries[i].completed = !inputState.entries[i].completed; renderInputSheet(); saveDraft(); }
 function selectVariant(entryIdx, variantIdx){
   const ex = activeExercise();
   const e = inputState.entries[entryIdx];
@@ -1749,19 +1771,23 @@ function selectVariant(entryIdx, variantIdx){
   e.name = newName;
   e.hist = lastPerformed(ex.id, newName, 3);
   renderInputSheet();
+  saveDraft();
 }
 function updateEntry(i,key,val){
   inputState.entries[i][key]=val;
+  saveDraft();
 }
 function updateSet(entryIdx, setIdx, key, val){
   if(key==="weight"){ val = val.replace(/[^\d.]/g,""); }
   if(key==="reps"){ val = parseInt(val)||0; }
   inputState.entries[entryIdx].sets[setIdx][key] = val;
+  saveDraft();
 }
 function copyFromPrevSet(entryIdx, setIdx){
   const sets = inputState.entries[entryIdx].sets;
   sets[setIdx] = { weight: sets[setIdx-1].weight, reps: sets[setIdx-1].reps };
   renderInputSheet();
+  saveDraft();
   const row = document.querySelector(`.set-row[data-entry="${entryIdx}"][data-set="${setIdx}"]`);
   if(row){
     row.classList.remove("just-copied");
@@ -1790,6 +1816,7 @@ function saveWorkout(){
   if(existingIdx>=0) dayList[existingIdx] = newRec; else dayList.push(newRec);
 
   DATA.lastDay[ex.id] = inputState.day;
+  if(DATA.drafts) delete DATA.drafts[ex.id];
 
   let maxResult = {updated:false};
   inputState.entries.forEach(e=>{
@@ -2222,6 +2249,48 @@ function shiftDetailDate(deltaDays){
     axis = null;
   });
 })();
+
+/* 汎用：シートを下スワイプで閉じる */
+function setupSwipeToClose(sheetId){
+  const sheet = document.getElementById(sheetId);
+  let startY=0, dy=0, dragging=false;
+  const CLOSE_THRESHOLD = 90;
+
+  sheet.addEventListener("touchstart", (e)=>{
+    if(e.touches.length!==1) return;
+    startY = e.touches[0].clientY;
+    dy = 0; dragging = true;
+    sheet.style.transition = "none";
+  }, {passive:true});
+
+  sheet.addEventListener("touchmove", (e)=>{
+    if(!dragging) return;
+    dy = e.touches[0].clientY - startY;
+    if(dy>0 && sheet.scrollTop<=0){
+      sheet.style.transform = `translateY(${dy}px)`;
+      e.preventDefault();
+    }
+  }, {passive:false});
+
+  sheet.addEventListener("touchend", ()=>{
+    if(!dragging) return;
+    dragging = false;
+    sheet.style.transition = "transform .28s cubic-bezier(.22,1,.36,1)";
+    if(dy>CLOSE_THRESHOLD){
+      sheet.style.transform = "translateY(100%)";
+      setTimeout(()=>{
+        closeSheet(sheetId);
+        sheet.style.transform = "";
+        sheet.style.transition = "";
+      }, 220);
+    }else{
+      sheet.style.transform = "translateY(0)";
+      setTimeout(()=>{ sheet.style.transform=""; sheet.style.transition=""; }, 300);
+    }
+    dy = 0;
+  });
+}
+setupSwipeToClose("inputSheet");
 
 renderAll();
 </script>
