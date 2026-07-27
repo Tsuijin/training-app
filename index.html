@@ -207,6 +207,15 @@
   .meter-endpoint-label{display:block; font-size:9px; font-weight:900; color:var(--text-faint); letter-spacing:1px;}
   .meter-endpoint-value{display:block; font-size:15px; font-weight:900; color:var(--ink); margin-top:2px;}
   .chart-title{font-size:10px; font-weight:800; letter-spacing:2px; color:var(--text-faint); margin-bottom:6px;}
+
+  /* 開閉セクション（GOAL METER / 立ち位置 / GROWTH LOG） */
+  .section-toggle{display:flex; align-items:center; justify-content:space-between; cursor:pointer; -webkit-tap-highlight-color:transparent;}
+  .section-toggle .chart-title, .section-toggle .percentile-label{margin-bottom:0;}
+  .section-toggle-arrow{font-size:11px; font-weight:900; color:var(--text-faint); margin-left:8px; transition:transform .15s ease;}
+  .section-toggle.open .section-toggle-arrow{transform:rotate(180deg);}
+  .section-toggle:active{opacity:0.55;}
+  .section-body{display:none;}
+  .section-body.open{display:block; margin-top:10px;}
   .chart-row{display:flex; gap:8px; align-items:stretch;}
   .chart-yaxis{
     flex:0 0 auto; display:flex; flex-direction:column; justify-content:space-between;
@@ -1012,10 +1021,15 @@ function percentileBadgeHtml(exerciseName, weightKg){
   const p = interpPercentile(table, weightKg);
   const rp = formatRankParts(p);
   return `<div class="percentile-badge">
-    <div class="percentile-label">日本人成人男性の中での立ち位置（目安）</div>
-    <div class="percentile-row">
-      <div class="percentile-main"><span class="p-small">全</span>${JP_ADULT_MALE_POPULATION_NUM}<span class="p-small">万人中</span> <span class="p-small">約</span><b>${rp.num}</b><span class="p-small">${rp.unit}位</span></div>
-      <div class="percentile-sub">（上位 約${formatPercentile(p)}）</div>
+    <div class="section-toggle ${collapseState.percentile?"open":""}" onclick="toggleSection('percentile')">
+      <div class="percentile-label">日本人成人男性の中での立ち位置（目安）</div>
+      <span class="section-toggle-arrow">▾</span>
+    </div>
+    <div class="section-body ${collapseState.percentile?"open":""}">
+      <div class="percentile-row">
+        <div class="percentile-main"><span class="p-small">全</span>${JP_ADULT_MALE_POPULATION_NUM}<span class="p-small">万人中</span> <span class="p-small">約</span><b>${rp.num}</b><span class="p-small">${rp.unit}位</span></div>
+        <div class="percentile-sub">（上位 約${formatPercentile(p)}）</div>
+      </div>
     </div>
   </div>`;
 }
@@ -1162,6 +1176,13 @@ function estimateRPE(percent){
 
 function activeExercise(){ return DATA.exercises.find(e=>e.id===DATA.activeExerciseId) || DATA.exercises[0]; }
 
+/* GOAL METER・立ち位置・GROWTH LOGの開閉状態（普段は閉じておく） */
+let collapseState = { meter:false, percentile:false, growth:false };
+function toggleSection(key){
+  collapseState[key] = !collapseState[key];
+  renderMain();
+}
+
 /* =========================================================================
    描画
    ========================================================================= */
@@ -1225,22 +1246,27 @@ function renderMain(){
       </div>
 
       <div class="meter-wrap">
-        <div class="chart-title">GOAL METER · 目標までの道のり</div>
-        <div class="meter-track">
-          <div class="meter-fill" style="width:${meterPercent}%"></div>
-          <div class="meter-marker" style="left:${meterPercent}%">
-            <div class="meter-marker-flag">${fmt1(max)}kg</div>
-            <div class="meter-marker-dot"></div>
-          </div>
+        <div class="section-toggle ${collapseState.meter?"open":""}" onclick="toggleSection('meter')">
+          <div class="chart-title">GOAL METER · 目標までの道のり</div>
+          <span class="section-toggle-arrow">▾</span>
         </div>
-        <div class="meter-endpoints">
-          <div class="meter-endpoint">
-            <span class="meter-endpoint-label">START</span>
-            <span class="meter-endpoint-value">${fmt1(start)}kg</span>
+        <div class="section-body ${collapseState.meter?"open":""}">
+          <div class="meter-track">
+            <div class="meter-fill" style="width:${meterPercent}%"></div>
+            <div class="meter-marker" style="left:${meterPercent}%">
+              <div class="meter-marker-flag">${fmt1(max)}kg</div>
+              <div class="meter-marker-dot"></div>
+            </div>
           </div>
-          <div class="meter-endpoint" style="text-align:right;">
-            <span class="meter-endpoint-label">GOAL</span>
-            <span class="meter-endpoint-value">${fmt1(goal)}kg</span>
+          <div class="meter-endpoints">
+            <div class="meter-endpoint">
+              <span class="meter-endpoint-label">START</span>
+              <span class="meter-endpoint-value">${fmt1(start)}kg</span>
+            </div>
+            <div class="meter-endpoint" style="text-align:right;">
+              <span class="meter-endpoint-label">GOAL</span>
+              <span class="meter-endpoint-value">${fmt1(goal)}kg</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1248,8 +1274,13 @@ function renderMain(){
       ${percentileBadgeHtml(ex.name, max)}
 
       <div class="chart-wrap">
-        <div class="chart-title">GROWTH LOG · 過去1年間の推移</div>
-        ${renderChart(history)}
+        <div class="section-toggle ${collapseState.growth?"open":""}" onclick="toggleSection('growth')">
+          <div class="chart-title">GROWTH LOG · 過去1年間の推移</div>
+          <span class="section-toggle-arrow">▾</span>
+        </div>
+        <div class="section-body ${collapseState.growth?"open":""}">
+          ${renderChart(history)}
+        </div>
       </div>
     </section>
 
