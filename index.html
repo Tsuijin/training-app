@@ -299,7 +299,7 @@
   #detailScrim.show{pointer-events:none; opacity:0.35;}
   .sheet{
     position:fixed; left:0; right:0; bottom:0; z-index:41;
-    max-height:92vh; overflow-y:auto;
+    max-height:92vh; overflow-y:auto; overflow-x:hidden;
     background:var(--bg-1); border-top-left-radius:26px; border-top-right-radius:26px;
     border-top:3px solid var(--ink);
     transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1);
@@ -2316,24 +2316,25 @@ function shiftDetailDate(deltaDays){
   d.setDate(d.getDate()+deltaDays);
   openDayDetail(todayKey(d), null);
 }
-/* 矢印ボタン／スワイプ共通：スライドアニメーションしながら前後の日付に切り替える */
+/* 矢印ボタン／スワイプ共通：ヘッダー（矢印・タイトル）は固定したまま、
+   本文（#detailBody）だけをスライドアニメーションして前後の日付に切り替える */
 function animateDetailShift(deltaDays){
-  const sheet = document.getElementById("detailSheet");
-  if(!sheet || !detailDateKey){ shiftDetailDate(deltaDays); return; }
+  const body = document.getElementById("detailBody");
+  if(!body || !detailDateKey){ shiftDetailDate(deltaDays); return; }
   const goingRight = deltaDays<0; // 前の日へ＝右にスライドアウト
-  sheet.style.transition = "transform .28s cubic-bezier(.22,1,.36,1), opacity .28s ease";
-  sheet.style.transform = `translateX(${goingRight?"100%":"-100%"})`;
-  sheet.style.opacity = "0";
+  body.style.transition = "transform .24s cubic-bezier(.22,1,.36,1), opacity .24s ease";
+  body.style.transform = `translateX(${goingRight?"100%":"-100%"})`;
+  body.style.opacity = "0";
   setTimeout(()=>{
     shiftDetailDate(deltaDays);
-    sheet.style.transition = "none";
-    sheet.style.transform = `translateX(${goingRight?"-100%":"100%"})`;
-    void sheet.offsetWidth; // reflow
-    sheet.style.transition = "transform .28s cubic-bezier(.22,1,.36,1), opacity .28s ease";
-    sheet.style.transform = "translateX(0)";
-    sheet.style.opacity = "1";
-    setTimeout(()=>{ sheet.style.transform=""; sheet.style.opacity=""; sheet.style.transition=""; }, 300);
-  }, 220);
+    body.style.transition = "none";
+    body.style.transform = `translateX(${goingRight?"-100%":"100%"})`;
+    void body.offsetWidth; // reflow
+    body.style.transition = "transform .24s cubic-bezier(.22,1,.36,1), opacity .24s ease";
+    body.style.transform = "translateX(0)";
+    body.style.opacity = "1";
+    setTimeout(()=>{ body.style.transform=""; body.style.opacity=""; body.style.transition=""; }, 260);
+  }, 200);
 }
 
 /* 日別詳細シート：上部を下フリックで閉じる／左右フリックで前後の日付に切り替える */
@@ -2349,6 +2350,8 @@ function animateDetailShift(deltaDays){
     startY = e.touches[0].clientY;
     dx=0; dy=0; axis=null; dragging=true;
     sheet.style.transition = "none";
+    const body = document.getElementById("detailBody");
+    if(body) body.style.transition = "none";
   }, {passive:true});
 
   sheet.addEventListener("touchmove", (e)=>{
@@ -2365,8 +2368,12 @@ function animateDetailShift(deltaDays){
         e.preventDefault();
       }
     }else if(axis==="x"){
-      sheet.style.transform = `translateX(${dx}px)`;
-      sheet.style.opacity = String(Math.max(0.4, 1-Math.abs(dx)/400));
+      /* ヘッダー（矢印・タイトル）は動かさず、本文だけ指に追従させる */
+      const body = document.getElementById("detailBody");
+      if(body){
+        body.style.transform = `translateX(${dx}px)`;
+        body.style.opacity = String(Math.max(0.4, 1-Math.abs(dx)/400));
+      }
       e.preventDefault();
     }
   }, {passive:false});
@@ -2381,12 +2388,18 @@ function animateDetailShift(deltaDays){
       sheet.style.transition = "";
     }, delay);
   }
+  function clearBodyInlineStyle(delay){
+    setTimeout(()=>{
+      const body = document.getElementById("detailBody");
+      if(body){ body.style.transform = ""; body.style.opacity = ""; body.style.transition = ""; }
+    }, delay);
+  }
 
   sheet.addEventListener("touchend", ()=>{
     if(!dragging) return;
     dragging = false;
-    sheet.style.transition = "transform .28s cubic-bezier(.22,1,.36,1), opacity .28s ease";
     if(axis==="y"){
+      sheet.style.transition = "transform .28s cubic-bezier(.22,1,.36,1), opacity .28s ease";
       if(dy>CLOSE_THRESHOLD){
         sheet.style.transform = "translateY(100%)";
         setTimeout(()=>{
@@ -2402,9 +2415,13 @@ function animateDetailShift(deltaDays){
       if(dx>SWIPE_THRESHOLD || dx<-SWIPE_THRESHOLD){
         animateDetailShift(dx>0 ? -1 : 1);
       }else{
-        sheet.style.transform = "translateX(0)";
-        sheet.style.opacity = "1";
-        clearInlineStyle(300);
+        const body = document.getElementById("detailBody");
+        if(body){
+          body.style.transition = "transform .24s cubic-bezier(.22,1,.36,1), opacity .24s ease";
+          body.style.transform = "translateX(0)";
+          body.style.opacity = "1";
+        }
+        clearBodyInlineStyle(280);
       }
     }
     axis = null;
