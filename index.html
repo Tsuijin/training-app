@@ -102,18 +102,17 @@
   .max-multi-row{display:flex; gap:12px;}
   .max-multi-col{flex:1; min-width:0;}
   .max-multi-abbr{font-size:10px; font-weight:900; color:var(--text-faint); letter-spacing:1px; margin-bottom:2px;}
-  .max-value-side-row{display:flex; align-items:flex-start; justify-content:space-between; gap:6px;}
-  .max-value-row{display:flex; align-items:baseline; gap:4px; margin-top:0; flex-wrap:nowrap; min-width:0;}
-  .max-value{font-size:30px; font-weight:900; letter-spacing:-1px; font-style:italic; color:var(--ink); text-shadow:2.5px 2.5px 0 var(--yellow); white-space:nowrap;}
-  .max-unit{font-size:13px; color:var(--accent-2); font-weight:900;}
-  .edit-dot{width:14px;height:14px;color:var(--accent-2); opacity:0.9; flex:0 0 auto;}
-  .max-side-stack{display:flex; flex-direction:column; align-items:flex-end; gap:3px; padding-top:3px; flex:0 0 auto;}
+  .max-value-side-row{display:flex; flex-wrap:wrap; align-items:flex-start; gap:2px 4px;}
+  .max-value-row{display:flex; align-items:baseline; gap:3px; margin-top:0; flex:0 0 auto; min-width:0;}
+  .max-value{font-size:26px; font-weight:900; letter-spacing:-1px; font-style:italic; color:var(--ink); text-shadow:2px 2px 0 var(--yellow); white-space:nowrap;}
+  .max-unit{font-size:12px; color:var(--accent-2); font-weight:900;}
+  .max-side-stack{display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:0 0 auto; margin-left:auto;}
   .goal-text{font-size:11px; font-weight:800; color:var(--accent-2); margin-top:4px;}
   .max-side-stack .goal-text{margin-top:0; white-space:nowrap;}
   .month-diff{
     display:inline-flex; align-items:center; gap:3px; margin-top:6px;
-    font-size:9.5px; font-weight:900; padding:3px 7px; border-radius:999px;
-    border:1.5px solid var(--line-soft); color:var(--text-dim); background:var(--card);
+    font-size:9px; font-weight:900; padding:3px 6px; border-radius:999px;
+    border:1.5px solid var(--line-soft); color:var(--text-dim); background:var(--card); white-space:nowrap;
   }
   .max-side-stack .month-diff{margin-top:0;}
   .month-diff.up{color:#fff; background:var(--accent-2); border-color:var(--ink);}
@@ -1253,7 +1252,6 @@ function maxColumnHtml(ex){
         <div class="max-value-row" onclick="event.stopPropagation(); openMaxEditor('${ex.id}')" style="cursor:pointer;">
           <span class="max-value">${fmt1(max)}</span>
           <span class="max-unit">kg</span>
-          <span class="edit-dot">✎</span>
         </div>
         <div class="max-side-stack">
           ${monthDiffBadgeHtml(monthDiff)}
