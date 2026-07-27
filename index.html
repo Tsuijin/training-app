@@ -1300,13 +1300,7 @@ function renderMain(){
         <span class="nb-label">NEXT</span>
         <span class="nb-day">${dayDisplay(nextDay(ex.id))}</span>
       </div>
-      <div class="cal-head">
-        <div class="cal-month">${monthTitle()}</div>
-      </div>
-      <div class="cal-grid">
-        ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join("")}
-        ${renderCalendarCells(ex.id)}
-      </div>
+      <div id="calBody"></div>
       <div class="cal-legend">
         ${["D1","D2","D3"].map(d=>`<div class="legend-item"><span class="legend-dot" style="background:${DAY_COLORS[d]}"></span>${dayDisplay(d)} ${escapeHtml((DATA.templates[ex.id]?.[d]?.label)||"")}</div>`).join("")}
       </div>
@@ -1322,6 +1316,7 @@ function renderMain(){
       </div>
     </section>
   `;
+  renderCalendarBody(ex.id);
 }
 
 function renderChart(history){
@@ -1383,13 +1378,39 @@ function monthAxisLabels(hist){
   return uniq.map(i=>formatYM(hist[i].date));
 }
 
+/* カレンダーで表示中の月（0=今月、-1=先月、+1=来月...） */
+let calendarMonthOffset = 0;
+function calendarViewDate(){
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth()+calendarMonthOffset, 1);
+}
+function shiftCalendarMonth(delta){
+  calendarMonthOffset += delta;
+  const ex = activeExercise();
+  if(ex) renderCalendarBody(ex.id);
+}
+function renderCalendarBody(exId){
+  const el = document.getElementById("calBody");
+  if(!el) return;
+  el.innerHTML = `
+    <div class="cal-head">
+      <button class="date-nav-btn" onclick="shiftCalendarMonth(-1)" aria-label="前の月">‹</button>
+      <div class="cal-month">${monthTitle()}</div>
+      <button class="date-nav-btn" onclick="shiftCalendarMonth(1)" aria-label="次の月">›</button>
+    </div>
+    <div class="cal-grid">
+      ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join("")}
+      ${renderCalendarCells(exId)}
+    </div>
+  `;
+}
 function monthTitle(){
-  const d = new Date();
+  const d = calendarViewDate();
   return `${d.getFullYear()}年 ${d.getMonth()+1}月`;
 }
 
 function renderCalendarCells(exId){
-  const d = new Date();
+  const d = calendarViewDate();
   const first = new Date(d.getFullYear(), d.getMonth(), 1);
   const leading = first.getDay();
   const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
@@ -2065,6 +2086,17 @@ function shiftDetailDate(deltaDays){
     }
   }, {passive:false});
 
+  /* ドラッグ由来のインライン transform/opacity を解除し、
+     CSS の .sheet / .sheet.show による開閉制御に戻す
+     （消し忘れると次回「閉じる」ボタンが効かなくなるバグの原因になる） */
+  function clearInlineStyle(delay){
+    setTimeout(()=>{
+      sheet.style.transform = "";
+      sheet.style.opacity = "";
+      sheet.style.transition = "";
+    }, delay);
+  }
+
   sheet.addEventListener("touchend", ()=>{
     if(!dragging) return;
     dragging = false;
@@ -2079,6 +2111,7 @@ function shiftDetailDate(deltaDays){
         }, 220);
       }else{
         sheet.style.transform = "translateY(0)";
+        clearInlineStyle(300);
       }
     }else if(axis==="x"){
       if(dx>SWIPE_THRESHOLD || dx<-SWIPE_THRESHOLD){
@@ -2093,11 +2126,48 @@ function shiftDetailDate(deltaDays){
           sheet.style.transition = "transform .28s cubic-bezier(.22,1,.36,1), opacity .28s ease";
           sheet.style.transform = "translateX(0)";
           sheet.style.opacity = "1";
+          clearInlineStyle(300);
         }, 220);
       }else{
         sheet.style.transform = "translateX(0)";
         sheet.style.opacity = "1";
+        clearInlineStyle(300);
       }
+    }
+    axis = null;
+  });
+})();
+
+/* カレンダー：左右スワイプで前月・翌月に切り替え */
+(function setupCalendarSwipeGesture(){
+  const root = document.getElementById("main");
+  let startX=0, startY=0, dx=0, axis=null, active=false;
+  const SWIPE_THRESHOLD = 50;
+
+  root.addEventListener("touchstart", (e)=>{
+    if(e.touches.length!==1 || !e.target.closest("#calBody")){ active=false; return; }
+    active = true;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    dx = 0; axis = null;
+  }, {passive:true});
+
+  root.addEventListener("touchmove", (e)=>{
+    if(!active) return;
+    const t = e.touches[0];
+    dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if(!axis && (Math.abs(dx)>10 || Math.abs(dy)>10)){
+      axis = Math.abs(dx)>Math.abs(dy) ? "x" : "y";
+    }
+    if(axis==="x") e.preventDefault();
+  }, {passive:false});
+
+  root.addEventListener("touchend", ()=>{
+    if(!active) return;
+    active = false;
+    if(axis==="x" && Math.abs(dx)>SWIPE_THRESHOLD){
+      shiftCalendarMonth(dx>0 ? -1 : 1);
     }
     axis = null;
   });
