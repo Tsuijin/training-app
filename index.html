@@ -1149,16 +1149,18 @@ function defaultData(){
       },
       [squatId]:{
         D1:{label:"Heavy Day", items:[
-          {id:uid(), name:"Max測定", sets:1, reps:1, mode:"percent", percentMin:90, percentMax:97.5, rpeMin:8, rpeMax:10, hint:"ウォーミングアップ兼・今日のコンディションを測る", isMaxTest:true},
-          {id:uid(), name:"メインスクワット", sets:5, reps:5, mode:"percent", percentMin:72.5, percentMax:77.5, rpeMin:7, rpeMax:9},
+          {id:uid(), name:"Max測定", sets:1, reps:1, mode:"percent", percentMin:90, percentMax:97.5, rpeMin:8, rpeMax:9, hint:"ウォーミングアップ兼・今日のコンディションを測る", isMaxTest:true},
+          {id:uid(), name:"メインスクワット", sets:5, reps:5, mode:"percent", percentMin:72.5, percentMax:77.5, rpeMin:6, rpeMax:8},
+          {id:uid(), name:"補助スクワット", variants:["フロントスクワット","ゴブレットスクワット"], sets:3, reps:8, mode:"fixed", rpeMin:5, rpeMax:6},
         ]},
         D2:{label:"Technique Day", items:[
-          {id:uid(), name:"ハイバースクワット", sets:4, reps:6, mode:"percent", percentMin:62.5, percentMax:67.5, rpeMin:6, rpeMax:8},
-          {id:uid(), name:"レッグプレス", sets:3, reps:10, mode:"fixed"},
+          {id:uid(), name:"テンポSQ", sets:3, reps:4, mode:"fixed", rpeMin:5, rpeMax:7},
+          {id:uid(), name:"レッグプレス", sets:3, reps:10, mode:"fixed", rpeMin:7, rpeMax:9},
         ]},
         D3:{label:"Variation Day", items:[
-          {id:uid(), name:"フロントスクワット", sets:3, reps:6, mode:"percent", percentMin:52.5, percentMax:57.5, rpeMin:7, rpeMax:9},
-          {id:uid(), name:"ブルガリアンスクワット", sets:3, reps:10, mode:"bodyweight"},
+          {id:uid(), name:"SQ", sets:1, reps:3, mode:"fixed", rpeMin:8, rpeMax:9, hint:"重いのを持つ"},
+          {id:uid(), name:"SQ", sets:3, reps:3, mode:"fixed", rpeMin:6, rpeMax:8, hint:"特に集中する"},
+          {id:uid(), name:"ブルガリアンSQ", sets:3, reps:8, mode:"bodyweight", rpeMin:7, rpeMax:8},
         ]},
       },
     },
@@ -1169,6 +1171,7 @@ function defaultData(){
     currentMax:{ [benchId]:97.5, [squatId]:140 },
     records:{ [benchId]:{}, [squatId]:{} },
     lastDay:{ [benchId]:"D1", [squatId]:"D1" },
+    squatMenuV2: true,
   };
 }
 function seedHistory(start,end,n){
@@ -1188,10 +1191,43 @@ function load(){
     if(!raw) return defaultData();
     const parsed = JSON.parse(raw);
     if(!parsed.exercises || !parsed.exercises.length) return defaultData();
-    return migrateRecords(migrateTemplates(migrateExercises(parsed)));
+    return migrateRecords(migrateTemplates(migrateSquatMenuV2(migrateExercises(parsed))));
   }catch(e){ return defaultData(); }
 }
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }
+
+/* スクワットのメニューを新しい構成（DAY1に補助種目を追加、DAY2/DAY3を全面差し替え）へ一度だけ移行する */
+function migrateSquatMenuV2(data){
+  if(data.squatMenuV2) return data;
+  const squat = (data.exercises||[]).find(e=>e.abbr==="SQ" || (e.name||"").includes("スクワット"));
+  if(squat && data.templates && data.templates[squat.id]){
+    const tmpl = data.templates[squat.id];
+    if(tmpl.D1 && tmpl.D1.items){
+      const maxTest = tmpl.D1.items.find(it=>it.name==="Max測定");
+      if(maxTest){ maxTest.rpeMin = 8; maxTest.rpeMax = 9; }
+      const main = tmpl.D1.items.find(it=>it.name==="メインスクワット");
+      if(main){ main.rpeMin = 6; main.rpeMax = 8; }
+      if(!tmpl.D1.items.some(it=>it.name==="補助スクワット")){
+        tmpl.D1.items.push({id:uid(), name:"補助スクワット", variants:["フロントスクワット","ゴブレットスクワット"], sets:3, reps:8, mode:"fixed", rpeMin:5, rpeMax:6});
+      }
+    }
+    if(tmpl.D2){
+      tmpl.D2.items = [
+        {id:uid(), name:"テンポSQ", sets:3, reps:4, mode:"fixed", rpeMin:5, rpeMax:7},
+        {id:uid(), name:"レッグプレス", sets:3, reps:10, mode:"fixed", rpeMin:7, rpeMax:9},
+      ];
+    }
+    if(tmpl.D3){
+      tmpl.D3.items = [
+        {id:uid(), name:"SQ", sets:1, reps:3, mode:"fixed", rpeMin:8, rpeMax:9, hint:"重いのを持つ"},
+        {id:uid(), name:"SQ", sets:3, reps:3, mode:"fixed", rpeMin:6, rpeMax:8, hint:"特に集中する"},
+        {id:uid(), name:"ブルガリアンSQ", sets:3, reps:8, mode:"bodyweight", rpeMin:7, rpeMax:8},
+      ];
+    }
+  }
+  data.squatMenuV2 = true;
+  return data;
+}
 
 /* 旧データに「タームの開始時重量」が無い場合、現在の1RMより少し低い値を仮の開始値として補う */
 function migrateExercises(data){
