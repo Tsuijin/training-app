@@ -193,11 +193,7 @@
     font-size:13.5px; font-weight:900; padding:6px 12px; border-radius:999px;
     display:flex; align-items:center; gap:5px; color:var(--text-dim);
   }
-  .next-badge-multi{
-    position:absolute; top:-13px; right:-6px; z-index:2;
-    display:flex; flex-direction:column; gap:4px; align-items:flex-end;
-    transform:rotate(-3deg);
-  }
+  .next-badge-row{display:flex; justify-content:flex-end; gap:6px; flex-wrap:wrap; margin-bottom:12px;}
   .next-badge-mini{
     display:flex; align-items:baseline; gap:4px; color:#fff; white-space:nowrap;
     padding:5px 11px; border-radius:10px; font-size:11.5px; font-weight:900;
@@ -205,6 +201,7 @@
     text-shadow:1px 1px 0 rgba(0,0,0,0.25);
   }
   .next-badge-mini b{font-size:9px; letter-spacing:1px; opacity:0.9;}
+  .cal-grid-clip{overflow:hidden; border-radius:8px;}
   .cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-top:10px;}
   .cal-dow{font-size:10px; font-weight:700; color:var(--text-faint); text-align:center; padding-bottom:4px;}
   .cal-day{
@@ -692,13 +689,14 @@
 <div class="sheet-scrim" id="inputScrim" onclick="closeSheet('inputSheet')"></div>
 <div class="sheet" id="inputSheet">
   <div class="sheet-handle"></div>
-  <div class="sheet-head"><h2>今日のトレーニング</h2><button class="close-btn" onclick="closeSheet('inputSheet')">閉じる</button></div>
+  <div class="sheet-head"><h2 id="inputSheetTitle">今日のトレーニング</h2><button class="close-btn" onclick="closeSheet('inputSheet')">閉じる</button></div>
   <div class="sheet-body">
+    <div id="inputEditLabel" class="history-chip" style="display:none; margin-bottom:10px;"></div>
     <div class="seg" id="inputExSeg" style="margin-bottom:8px;"></div>
     <div class="seg" id="inputDaySeg"></div>
     <div class="rpe-hint-banner">🎯 重量は「目標RPE」を目安に、その日の感覚で選んでください。前回の実績も参考にどうぞ。</div>
     <div id="inputPlanList" style="margin-top:16px;"></div>
-    <button class="cta" style="margin-top:6px;" onclick="saveWorkout()">この内容で保存</button>
+    <button class="cta" id="inputSaveBtn" style="margin-top:6px;" onclick="saveWorkout()">この内容で保存</button>
   </div>
 </div>
 
@@ -1312,13 +1310,6 @@ function renderMain(){
     </section>
 
     <section class="card">
-      <div class="next-badge-multi">
-        ${DATA.exercises.map(ex=>`
-          <div class="next-badge-mini" style="background:${DAY_COLORS[nextDay(ex.id)]};">
-            <b>${escapeHtml(ex.abbr||defaultAbbr(ex.name))}</b> ${dayDisplay(nextDay(ex.id))}
-          </div>
-        `).join("")}
-      </div>
       <div id="calBody"></div>
       <div class="cal-legend">
         ${["D1","D2","D3"].map(d=>`<div class="legend-item"><span class="legend-dot" style="background:${DAY_COLORS[d]}"></span>${dayDisplay(d)}</div>`).join("")}
@@ -1401,14 +1392,23 @@ function renderCalendarBody(){
   const el = document.getElementById("calBody");
   if(!el) return;
   el.innerHTML = `
+    <div class="next-badge-row">
+      ${DATA.exercises.map(ex=>`
+        <div class="next-badge-mini" style="background:${DAY_COLORS[nextDay(ex.id)]};">
+          <b>${escapeHtml(ex.abbr||defaultAbbr(ex.name))}</b> ${dayDisplay(nextDay(ex.id))}
+        </div>
+      `).join("")}
+    </div>
     <div class="cal-head">
       <button class="date-nav-btn" onclick="shiftCalendarMonth(-1)" aria-label="前の月">‹</button>
       <div class="cal-month">${monthTitle()}</div>
       <button class="date-nav-btn" onclick="shiftCalendarMonth(1)" aria-label="次の月">›</button>
     </div>
-    <div class="cal-grid">
-      ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join("")}
-      ${renderCalendarCells()}
+    <div class="cal-grid-clip">
+      <div class="cal-grid">
+        ${DOW.map(d=>`<div class="cal-dow">${d}</div>`).join("")}
+        ${renderCalendarCells()}
+      </div>
     </div>
   `;
 }
@@ -1645,7 +1645,10 @@ function openDayDetail(dateKey, sourceCell){
     return `
       <div class="detail-ex-label">${escapeHtml(ex.abbr||defaultAbbr(ex.name))} ${escapeHtml(ex.name)}</div>
       ${recs.map(rec=>`
-        <div class="next-badge" style="background:${DAY_COLORS[rec.day]}22;color:${DAY_COLORS[rec.day]};margin-bottom:12px;">${dayDisplay(rec.day)} · ${escapeHtml(rec.dayLabel||"")}</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;">
+          <div class="next-badge" style="background:${DAY_COLORS[rec.day]}22;color:${DAY_COLORS[rec.day]};">${dayDisplay(rec.day)} · ${escapeHtml(rec.dayLabel||"")}</div>
+          <button type="button" class="tiny-btn accent" onclick="editDayRecord('${ex.id}','${dateKey}','${rec.day}')">✎ 編集</button>
+        </div>
         ${rec.logs.map(l=>`
           <div class="plan-item">
             <div class="plan-item-name">${l.completed?"✅":"⬜︎"} ${escapeHtml(l.name)}</div>
@@ -1668,12 +1671,32 @@ function openDayDetail(dateKey, sourceCell){
 /* =========================================================================
    トレーニング入力
    ========================================================================= */
-let inputState = { exId:null, day:"D1", entries:[] };
+let inputState = { exId:null, day:"D1", entries:[], editingDateKey:null };
 
 function openWorkoutInput(){
+  inputState.editingDateKey = null;
   const defaultEx = DATA.exercises.find(e=>e.id===inputState.exId) || DATA.exercises[0];
   if(!defaultEx) return;
   switchInputExercise(defaultEx.id);
+  openSheet("inputSheet");
+}
+/* カレンダーの日別詳細シートから、過去の記録を編集する */
+function editDayRecord(exId, dateKey, day){
+  const ex = DATA.exercises.find(e=>e.id===exId);
+  const rec = ((DATA.records[exId]||{})[dateKey]||[]).find(r=>r.day===day);
+  if(!ex || !rec) return;
+  inputState.exId = exId;
+  inputState.day = day;
+  inputState.editingDateKey = dateKey;
+  inputState.entries = rec.logs.map(l=>({
+    name:l.name, variants:null, plannedText:l.plannedText, rpeText:null,
+    hint:"", isMaxTest:false, mode:"fixed",
+    hist: lastPerformed(exId, l.name, 3),
+    sets: (l.sets||[]).map(s=>({weight:s.weight, reps:s.reps})),
+    completed: l.completed, note: l.note||""
+  }));
+  closeSheet("detailSheet");
+  renderInputSheet();
   openSheet("inputSheet");
 }
 /* 種目を切り替える。その種目の下書きが今日の日付なら復元、無ければ新規に組み立てる */
@@ -1744,12 +1767,28 @@ function lastPerformed(exId, name, n){
 }
 function renderInputSheet(){
   const ex = DATA.exercises.find(e=>e.id===inputState.exId);
+  const editing = !!inputState.editingDateKey;
+
+  document.getElementById("inputSheetTitle").textContent = editing ? "記録を編集" : "今日のトレーニング";
+  document.getElementById("inputSaveBtn").textContent = editing ? "この内容で更新する" : "この内容で保存";
+
+  const editLabel = document.getElementById("inputEditLabel");
+  if(editing){
+    const d = new Date(inputState.editingDateKey);
+    editLabel.style.display = "block";
+    editLabel.textContent = `✎ ${d.getMonth()+1}月${d.getDate()}日 ・ ${escapeHtml(ex.name)} ・ ${dayDisplay(inputState.day)} を編集中`;
+  }else{
+    editLabel.style.display = "none";
+  }
+
   const exSeg = document.getElementById("inputExSeg");
+  exSeg.style.display = editing ? "none" : "flex";
   exSeg.innerHTML = DATA.exercises.map(e2=>`
     <button class="${inputState.exId===e2.id?"active":""}" style="${inputState.exId===e2.id?"background:linear-gradient(135deg, var(--accent), var(--accent-2));":""}" onclick="switchInputExercise('${e2.id}')">${escapeHtml(e2.name)}</button>
   `).join("");
 
   const seg = document.getElementById("inputDaySeg");
+  seg.style.display = editing ? "none" : "flex";
   seg.innerHTML = ["D1","D2","D3"].map(d=>`
     <button class="${inputState.day===d?"active":""}" style="${inputState.day===d?`background:${DAY_COLORS[d]}`:""}" onclick="switchInputDay('${d}')">${dayDisplay(d)}</button>
   `).join("");
@@ -1825,7 +1864,8 @@ function copyFromPrevSet(entryIdx, setIdx){
 function saveWorkout(){
   const ex = DATA.exercises.find(e=>e.id===inputState.exId);
   const tmpl = (DATA.templates[ex.id]||{})[inputState.day];
-  const key = todayKey();
+  const isEditingPast = !!inputState.editingDateKey && inputState.editingDateKey!==todayKey();
+  const key = inputState.editingDateKey || todayKey();
   DATA.records[ex.id] = DATA.records[ex.id]||{};
   DATA.records[ex.id][key] = DATA.records[ex.id][key]||[];
   const newRec = {
@@ -1842,21 +1882,30 @@ function saveWorkout(){
   const existingIdx = dayList.findIndex(r=>r.day===inputState.day);
   if(existingIdx>=0) dayList[existingIdx] = newRec; else dayList.push(newRec);
 
-  DATA.lastDay[ex.id] = inputState.day;
+  // 過去日の編集では「直近やったDAY」や現在の1RMを遡って書き換えない
+  if(!isEditingPast){
+    DATA.lastDay[ex.id] = inputState.day;
+  }
   if(DATA.drafts) delete DATA.drafts[ex.id];
 
   let maxResult = {updated:false};
-  inputState.entries.forEach(e=>{
-    if(e.isMaxTest && e.sets[0] && e.sets[0].weight){
-      const r = applyNewMax(ex.id, e.sets[0].weight);
-      if(r.updated) maxResult = r;
-    }
-  });
+  if(!isEditingPast){
+    inputState.entries.forEach(e=>{
+      if(e.isMaxTest && e.sets[0] && e.sets[0].weight){
+        const r = applyNewMax(ex.id, e.sets[0].weight);
+        if(r.updated) maxResult = r;
+      }
+    });
+  }
 
   save();
   closeSheet("inputSheet");
+  const wasEditing = !!inputState.editingDateKey;
+  inputState.editingDateKey = null;
 
-  if(maxResult.updated){
+  if(wasEditing){
+    showToast("記録を更新しました");
+  }else if(maxResult.updated){
     if(!maxResult.isPR) showToast(`📌 現在の1RMを ${fmt1(maxResult.rounded)}kg に更新しました`);
     // PRの場合は applyNewMax 側でトースト・演出済み
   }else{
@@ -2244,17 +2293,21 @@ function shiftDetailDate(deltaDays){
 })();
 
 /* カレンダー：左右スワイプで前月・翌月に切り替え */
+/* カレンダー：指の動きに追従してスライドし、離すと月が切り替わる */
 (function setupCalendarSwipeGesture(){
   const root = document.getElementById("main");
-  let startX=0, startY=0, dx=0, axis=null, active=false;
+  let startX=0, startY=0, dx=0, axis=null, active=false, gridEl=null;
   const SWIPE_THRESHOLD = 50;
 
   root.addEventListener("touchstart", (e)=>{
-    if(e.touches.length!==1 || !e.target.closest("#calBody")){ active=false; return; }
+    const cal = e.target.closest("#calBody");
+    if(e.touches.length!==1 || !cal){ active=false; return; }
     active = true;
+    gridEl = cal.querySelector(".cal-grid");
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
     dx = 0; axis = null;
+    if(gridEl) gridEl.style.transition = "none";
   }, {passive:true});
 
   root.addEventListener("touchmove", (e)=>{
@@ -2265,14 +2318,37 @@ function shiftDetailDate(deltaDays){
     if(!axis && (Math.abs(dx)>10 || Math.abs(dy)>10)){
       axis = Math.abs(dx)>Math.abs(dy) ? "x" : "y";
     }
-    if(axis==="x") e.preventDefault();
+    if(axis==="x"){
+      if(gridEl) gridEl.style.transform = `translateX(${dx}px)`;
+      e.preventDefault();
+    }
   }, {passive:false});
 
   root.addEventListener("touchend", ()=>{
     if(!active) return;
     active = false;
+    const grid = gridEl;
+    gridEl = null;
+    if(!grid){ axis=null; return; }
+    grid.style.transition = "transform .22s cubic-bezier(.22,1,.36,1)";
     if(axis==="x" && Math.abs(dx)>SWIPE_THRESHOLD){
-      shiftCalendarMonth(dx>0 ? -1 : 1);
+      const goingRight = dx>0; // 右にフリック＝前の月、左にフリック＝次の月
+      grid.style.transform = `translateX(${goingRight?"100%":"-100%"})`;
+      setTimeout(()=>{
+        shiftCalendarMonth(goingRight?-1:1);
+        const newGrid = document.querySelector("#calBody .cal-grid");
+        if(newGrid){
+          newGrid.style.transition = "none";
+          newGrid.style.transform = `translateX(${goingRight?"-100%":"100%"})`;
+          void newGrid.offsetWidth; // reflow
+          newGrid.style.transition = "transform .22s cubic-bezier(.22,1,.36,1)";
+          newGrid.style.transform = "translateX(0)";
+          setTimeout(()=>{ newGrid.style.transform=""; newGrid.style.transition=""; }, 260);
+        }
+      }, 200);
+    }else{
+      grid.style.transform = "translateX(0)";
+      setTimeout(()=>{ grid.style.transform=""; grid.style.transition=""; }, 260);
     }
     axis = null;
   });
@@ -2286,6 +2362,8 @@ function setupSwipeToClose(sheetId){
 
   sheet.addEventListener("touchstart", (e)=>{
     if(e.touches.length!==1) return;
+    /* 本文スクロール中の誤爆を防ぐため、ハンドル／ヘッダー起点のタッチだけを閉じるジェスチャー対象にする */
+    if(!e.target.closest(".sheet-handle, .sheet-head")){ dragging=false; return; }
     startY = e.touches[0].clientY;
     dy = 0; dragging = true;
     sheet.style.transition = "none";
