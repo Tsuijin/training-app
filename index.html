@@ -1106,7 +1106,7 @@ function defaultData(){
         ]},
         D3:{label:"Variation Day", items:[
           {id:uid(), name:"ナロー・ラーセンBP（足上げ・狭め手幅）", sets:3, reps:8, mode:"percent", percentMin:60, percentMax:67.5, rpeMin:7, rpeMax:9},
-          {id:uid(), name:"チンニング（懸垂）", sets:3, reps:10, mode:"bodyweight", rpeMin:8, rpeMax:10},
+          {id:uid(), name:"懸垂系", variants:["チンニング（懸垂）","ラットプルダウン"], sets:3, reps:10, mode:"fixed", rpeMin:8, rpeMax:10},
           {id:uid(), name:"ライイング・トライセプス・エクステンション", sets:3, reps:10, mode:"fixed", rpeMin:8, rpeMax:10},
         ]},
       },
@@ -1194,6 +1194,11 @@ function migrateTemplates(data){
         }
         if(it.name==="腹筋" && it.variants && !it.variants.includes("アブドミナルマシン")){
           it.variants.push("アブドミナルマシン");
+        }
+        if(it.name==="チンニング（懸垂）" && (!it.variants || it.variants.length<2)){
+          it.variants = ["チンニング（懸垂）","ラットプルダウン"];
+          it.name = "懸垂系";
+          it.mode = "fixed";
         }
       });
     });
