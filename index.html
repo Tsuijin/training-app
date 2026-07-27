@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#ffffff">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>MAX LOG | トレーニング記録</title>
 <style>
   :root{
@@ -143,18 +145,16 @@
   .max-multi-col{flex:1; min-width:0;}
   .max-multi-abbr{font-size:10px; font-weight:900; color:var(--text-faint); letter-spacing:1px; padding-top:1px;}
   .max-multi-top-row{display:flex; align-items:flex-start; justify-content:space-between; gap:6px; margin-bottom:2px;}
+  .max-value-goal-row{display:flex; align-items:baseline; justify-content:space-between; gap:6px; flex-wrap:wrap;}
   .max-value-row{display:flex; align-items:baseline; gap:3px; margin-top:0; min-width:0;}
   .max-value{font-size:26px; font-weight:900; letter-spacing:-1px; font-style:italic; color:var(--ink); text-shadow:2px 2px 0 var(--yellow); white-space:nowrap;}
   .max-unit{font-size:12px; color:var(--accent-2); font-weight:900;}
-  .max-side-stack{display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:0 0 auto;}
-  .goal-text{font-size:11px; font-weight:800; color:var(--accent-2); margin-top:4px;}
-  .max-side-stack .goal-text{margin-top:0; white-space:nowrap;}
+  .goal-text{font-size:11px; font-weight:800; color:var(--accent-2); white-space:nowrap;}
   .month-diff{
-    display:inline-block; text-align:center; line-height:1.35; margin-top:6px;
+    display:inline-block; text-align:center; line-height:1.35;
     font-size:9px; font-weight:900; padding:3px 6px; border-radius:10px;
     border:1.5px solid var(--line-soft); color:var(--text-dim); background:var(--card); white-space:nowrap;
   }
-  .max-side-stack .month-diff{margin-top:0;}
   .month-diff.up{color:#fff; background:var(--accent-2); border-color:var(--ink);}
   .meter-col{width:100%; margin-top:8px; display:flex; flex-direction:column; align-items:center;}
   .meter-track-mini{
@@ -1345,14 +1345,14 @@ function maxColumnHtml(ex){
     <div class="max-multi-col">
       <div class="max-multi-top-row">
         <div class="max-multi-abbr">${escapeHtml(ex.name)}</div>
-        <div class="max-side-stack">
-          ${monthDiffBadgeHtml(monthDiff)}
-          <div class="goal-text">${max>=goal ? "🎉 達成！" : `あと ${fmt1(remain)}kg`}</div>
-        </div>
+        ${monthDiffBadgeHtml(monthDiff)}
       </div>
-      <div class="max-value-row" onclick="event.stopPropagation(); openMaxEditor('${ex.id}')" style="cursor:pointer;">
-        <span class="max-value">${fmt1(max)}</span>
-        <span class="max-unit">kg</span>
+      <div class="max-value-goal-row">
+        <div class="max-value-row" onclick="event.stopPropagation(); openMaxEditor('${ex.id}')" style="cursor:pointer;">
+          <span class="max-value">${fmt1(max)}</span>
+          <span class="max-unit">kg</span>
+        </div>
+        <div class="goal-text">${max>=goal ? "🎉 達成！" : `あと ${fmt1(remain)}kg`}</div>
       </div>
       <div class="meter-col">
         <div class="meter-track-mini"><div class="meter-fill-mini" style="width:${meterPercent}%"></div></div>
