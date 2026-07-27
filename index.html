@@ -91,7 +91,7 @@
   }
   .tab-pill.add{color:var(--text-faint); border-style:dashed; box-shadow:none;}
 
-  main{padding:6px 16px 120px 16px; max-width:520px; margin:0 auto;}
+  main{padding:6px 16px 150px 16px; max-width:520px; margin:0 auto;}
   section{margin-top:16px;}
 
   /* ---------- Cards ---------- */
@@ -285,6 +285,15 @@
   .cta.ghost{
     background:var(--card); box-shadow:3px 3px 0 var(--ink); color:var(--ink);
   }
+  .cta-float-wrap{
+    position:fixed; left:0; right:0; bottom:0; z-index:15;
+    max-width:520px; margin:0 auto; box-sizing:border-box;
+    padding:18px 16px calc(16px + var(--safe-bottom));
+    background:linear-gradient(0deg, rgba(255,255,255,0.96) 58%, rgba(255,255,255,0));
+    -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px);
+    pointer-events:none;
+  }
+  .cta-float-wrap .cta{pointer-events:auto;}
 
   .empty-state{text-align:center; padding:50px 10px; color:var(--text-faint);}
   .empty-state .glyph{font-size:32px; margin-bottom:10px;}
@@ -614,6 +623,10 @@
 </header>
 
 <main id="main"></main>
+</div>
+
+<div class="cta-float-wrap">
+  <button class="cta" onclick="openWorkoutInput()">🔥 今日のトレーニングを開始</button>
 </div>
 
 <!-- ============ 設定（全画面） ============ -->
@@ -1206,10 +1219,13 @@ function renderTabs(){
 function renderMain(){
   const ex = activeExercise();
   const main = document.getElementById("main");
+  const ctaFloat = document.querySelector(".cta-float-wrap");
   if(!ex){
     main.innerHTML = `<div class="empty-state"><div class="glyph">🏋️</div>種目がありません。設定から追加してください。</div>`;
+    if(ctaFloat) ctaFloat.style.display = "none";
     return;
   }
+  if(ctaFloat) ctaFloat.style.display = "";
   const max = DATA.currentMax[ex.id] || 0;
   const goal = ex.goal || 100;
   const start = ex.start!==undefined && ex.start!==null ? ex.start : Math.max(0, round25(max*0.85));
@@ -1309,10 +1325,6 @@ function renderMain(){
           <div class="quote-text">${escapeHtml(pickQuoteForToday())}</div>
         </div>
       </div>
-    </section>
-
-    <section>
-      <button class="cta" onclick="openWorkoutInput()">🔥 今日のトレーニングを開始</button>
     </section>
   `;
 }
