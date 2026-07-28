@@ -56,8 +56,8 @@
   header.topbar{
     position:sticky; top:0; z-index:20;
     padding:calc(2px + var(--safe-top)) 16px 0 16px;
-    background:linear-gradient(180deg, #ffffff 0%, #ffffff 65%, rgba(255,255,255,0) 100%);
-    background-clip:content-box; -webkit-background-clip:content-box;
+    /* 白帯は敷かず、背後のコンテンツを blur-stack のぼかしだけで馴染ませる（ガラス風） */
+    background:transparent;
   }
   .topbar-row{position:relative; display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
 
