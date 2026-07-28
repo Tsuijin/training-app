@@ -1345,7 +1345,7 @@ function maxColumnHtml(ex){
   const monthAgoMax = valueMonthAgo(history);
   const monthDiff = monthAgoMax!=null ? (max-monthAgoMax) : null;
   return `
-    <div class="max-multi-col">
+    <div class="max-multi-col" onclick="openStatsSheet('${ex.id}')" style="cursor:pointer;">
       <div class="max-multi-top-row">
         <div class="max-multi-abbr">${escapeHtml(ex.name)}</div>
         ${monthDiffBadgeHtml(monthDiff)}
@@ -1385,7 +1385,7 @@ function renderMain(){
       </div>
     </section>
 
-    <section class="card" onclick="openStatsSheet()" style="cursor:pointer;">
+    <section class="card">
       <div class="max-eyebrow-hero">🔥<span>現在のMAX</span></div>
       <div class="max-multi-row">
         ${DATA.exercises.map(ex=>maxColumnHtml(ex)).join("")}
@@ -1402,11 +1402,12 @@ function renderMain(){
   renderCalendarBody();
 }
 
-/* 現在のMAXカードタップ時、立ち位置とGROWTH LOGをまとめてポップアップ表示（種目はポップアップ内で切替） */
+/* 現在のMAXカードの各列タップ時、その種目の立ち位置とGROWTH LOGをポップアップ表示（種目はポップアップ内でも切替可） */
 let statsSheetExId = null;
-function openStatsSheet(){
+function openStatsSheet(exId){
   if(!DATA.exercises.length) return;
-  statsSheetExId = DATA.exercises.some(e=>e.id===statsSheetExId) ? statsSheetExId : DATA.exercises[0].id;
+  const requested = exId && DATA.exercises.some(e=>e.id===exId);
+  statsSheetExId = requested ? exId : (DATA.exercises.some(e=>e.id===statsSheetExId) ? statsSheetExId : DATA.exercises[0].id);
   renderStatsSheetBody();
   openSheet("statsSheet");
 }
