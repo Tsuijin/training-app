@@ -59,11 +59,12 @@
     /* 白帯は敷かず、背後のコンテンツを blur-stack のぼかしだけで馴染ませる（ガラス風） */
     background:transparent;
   }
-  .topbar-row{position:relative; display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
+  /* z-index を明示し、iOS でぼかし層に隠されないようにする */
+  .topbar-row{position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
 
   /* ガラスのような段階的ぼかし：ぼかし量が異なる複数レイヤーを重ねて、
      画面端に近いほどぼかしが強く、コンテンツに近いほど弱くなる（＝境界が見えない）グラデーションを疑似的に作る */
-  .blur-stack{position:absolute; inset:0; pointer-events:none;}
+  .blur-stack{position:absolute; inset:0; z-index:0; pointer-events:none;}
   .blur-stack span{position:absolute; inset:0; display:block;}
   .blur-stack span:nth-child(1){
     backdrop-filter:blur(9px); -webkit-backdrop-filter:blur(9px);
@@ -284,7 +285,7 @@
     background-clip:content-box; -webkit-background-clip:content-box;
     pointer-events:none;
   }
-  .cta-float-wrap .cta{position:relative; pointer-events:auto;}
+  .cta-float-wrap .cta{position:relative; z-index:1; pointer-events:auto;}
 
   .empty-state{text-align:center; padding:50px 10px; color:var(--text-faint);}
   .empty-state .glyph{font-size:32px; margin-bottom:10px;}
@@ -601,7 +602,7 @@
 <div class="confetti-layer" id="confettiLayer"></div>
 <div class="hype-burst" id="hypeBurst"></div>
 
-<svg width="0" height="0" style="position:absolute;" aria-hidden="true"><defs>
+<svg width="0" height="0" style="display:block;" aria-hidden="true"><defs>
   <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
     <stop offset="0%" stop-color="#ff6a3d"/><stop offset="100%" stop-color="#ff3b60"/>
   </linearGradient>
