@@ -57,6 +57,7 @@
     position:sticky; top:0; z-index:20;
     padding:calc(2px + var(--safe-top)) 16px 0 16px;
     background:linear-gradient(180deg, #ffffff 0%, #ffffff 65%, rgba(255,255,255,0) 100%);
+    background-clip:content-box; -webkit-background-clip:content-box;
   }
   .topbar-row{position:relative; display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;}
 
@@ -280,6 +281,7 @@
     max-width:520px; margin:0 auto; box-sizing:border-box;
     padding:18px 16px calc(16px + var(--safe-bottom));
     background:linear-gradient(0deg, #ffffff 0%, #ffffff 40%, rgba(255,255,255,0) 100%);
+    background-clip:content-box; -webkit-background-clip:content-box;
     pointer-events:none;
   }
   .cta-float-wrap .cta{position:relative; pointer-events:auto;}
