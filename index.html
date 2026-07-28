@@ -33,9 +33,9 @@
     --radius-s:9px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;height:100%; overflow:hidden; overscroll-behavior:none; background:#ffffff; color-scheme:light;}
+  html,body{margin:0;padding:0;height:100%; height:100dvh; overflow:hidden; overscroll-behavior:none; background:#ffffff; color-scheme:light;}
   #scrollWrap{
-    height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    height:100%; height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;
     overscroll-behavior:none; background:#ffffff;
   }
   body{
@@ -46,7 +46,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",system-ui,sans-serif;
     font-weight:600;
     -webkit-font-smoothing:antialiased;
-    position:fixed; width:100%; height:100%; inset:0;
+    position:fixed; inset:0;
   }
   .mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;}
   button{font-family:inherit;}
