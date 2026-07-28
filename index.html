@@ -214,8 +214,21 @@
     flex:0 0 auto; display:flex; flex-direction:column; justify-content:space-between;
     font-size:9.5px; font-weight:800; color:var(--text-faint); text-align:right; padding:3px 0;
   }
-  .chart-svg-wrap{flex:1; min-width:0;}
+  .chart-svg-wrap{flex:1; min-width:0; position:relative;}
   svg.chart{width:100%; height:110px; display:block; overflow:visible;}
+  .chart-tooltip{
+    position:absolute; transform:translate(-50%,-100%) translateY(-10px);
+    background:var(--ink); color:#fff; font-size:11px; font-weight:800; line-height:1.4;
+    text-align:center; padding:5px 9px; border-radius:8px; white-space:nowrap;
+    pointer-events:none; opacity:0; visibility:hidden; transition:opacity .15s ease;
+    z-index:5;
+  }
+  .chart-tooltip b{font-size:12.5px; color:var(--yellow);}
+  .chart-tooltip::after{
+    content:""; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+    border:5px solid transparent; border-top-color:var(--ink);
+  }
+  .chart-tooltip.show{opacity:1; visibility:visible;}
 
   /* Calendar */
   .cal-head{display:flex; align-items:center; justify-content:space-between;}
@@ -1453,7 +1466,10 @@ function renderChart(history){
   });
   const line = pts.map((p,i)=>(i===0?"M":"L")+p[0].toFixed(1)+","+p[1].toFixed(1)).join(" ");
   const area = line + ` L${pts[pts.length-1][0]},${H} L${pts[0][0]},${H} Z`;
-  const dots = pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="2.6" fill="#ff6a3d"/>`).join("");
+  const dots = pts.map((p,i)=>`
+    <circle cx="${p[0]}" cy="${p[1]}" r="10" fill="transparent" pointer-events="all" style="cursor:pointer;" onclick="showChartTooltip(event,'${hist[i].date}',${hist[i].weight})"/>
+    <circle cx="${p[0]}" cy="${p[1]}" r="2.6" fill="#ff6a3d" style="pointer-events:none;"/>
+  `).join("");
   const gridLines = [pad, H/2, H-pad].map(y=>
     `<line x1="${pad}" y1="${y}" x2="${W-pad}" y2="${y}" stroke="var(--line-soft)" stroke-width="1" stroke-dasharray="3,3"/>`
   ).join("");
@@ -1474,6 +1490,27 @@ function renderChart(history){
     </div>
   </div>
   <div class="chart-axis">${monthAxisLabels(hist).map(l=>`<span>${l}</span>`).join("")}</div>`;
+}
+/* GROWTH LOGのグラフをタップした時、その年月のMAXを吹き出しで表示する */
+function showChartTooltip(evt, dateStr, weight){
+  evt.stopPropagation();
+  const dot = evt.currentTarget;
+  const wrap = dot.closest(".chart-svg-wrap");
+  if(!wrap) return;
+  let tip = wrap.querySelector(".chart-tooltip");
+  if(!tip){
+    tip = document.createElement("div");
+    tip.className = "chart-tooltip";
+    wrap.appendChild(tip);
+  }
+  const wrapRect = wrap.getBoundingClientRect();
+  const dotRect = dot.getBoundingClientRect();
+  tip.style.left = (dotRect.left + dotRect.width/2 - wrapRect.left) + "px";
+  tip.style.top = (dotRect.top + dotRect.height/2 - wrapRect.top) + "px";
+  tip.innerHTML = `<b>${fmt1(weight)}kg</b><br>${formatYM(dateStr)}`;
+  tip.classList.add("show");
+  clearTimeout(showChartTooltip._t);
+  showChartTooltip._t = setTimeout(()=>tip.classList.remove("show"), 3000);
 }
 function formatYM(dateStr){
   const d = new Date(dateStr);
