@@ -807,7 +807,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 03:42";
+const APP_VERSION = "2026-07-30 03:51";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -2405,15 +2405,21 @@ function renderDiagnostics(){
   const cta = document.querySelector(".cta-float-wrap .cta");
   const gap = cta ? Math.round(window.innerHeight - cta.getBoundingClientRect().bottom) : -1;
   const vv = window.visualViewport;
-  /* Web ビューが画面下端まで届いているか。届いていないと、その帯は CSS で描画できない。 */
-  const uncovered = window.screen.height - window.innerHeight;
+  /* Web ビューが画面下端まで届いているかの判定。
+     screen.height と innerHeight の差(shortfall)は、ステータスバー分か、画面下の余りかの
+     どちらか。safe-area-inset-top が返るということはページがステータスバーの下まで
+     潜り込んでいる（black-translucent 相当）＝ 差は画面下に余っている、と判別できる。 */
+  const shortfall = window.screen.height - window.innerHeight;
+  const underStatusBar = sTop > 0;
+  const bottomDead = underStatusBar ? shortfall : 0;
+  const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
   el.textContent = [
     `safe top ${Math.round(sTop)} / bottom ${Math.round(sBottom)}`,
     `innerH ${window.innerHeight}  screenH ${window.screen.height}  dpr ${window.devicePixelRatio}`,
     vv ? `visualVP ${Math.round(vv.height)} offset ${Math.round(vv.offsetTop)}` : "visualVP なし",
     `ボタン下端→画面下 ${gap}px`,
-    `standalone ${navigator.standalone}`,
-    `描画できない帯 ${uncovered}pt ${uncovered > 8 ? "← 要修正" : "（なし）"}`,
+    `standalone ${navigator.standalone} / statusbar ${meta ? meta.content : "なし"}`,
+    `画面下の描画できない帯 ${bottomDead}pt ${bottomDead > 8 ? "← 要修正" : "（なし）"}`,
   ].join("\n");
 }
 
