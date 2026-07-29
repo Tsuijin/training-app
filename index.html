@@ -428,7 +428,7 @@
 
   /* workout entry rows */
   .plan-item{
-    background:var(--card); border:2.5px solid var(--ink); border-radius:16px; padding:14px; margin-bottom:12px;
+    background:var(--card); border:2.5px solid var(--ink); border-radius:16px; padding:11px 12px; margin-bottom:8px;
     box-shadow:3px 3px 0 var(--ink);
   }
   .plan-item.editable{
@@ -451,8 +451,8 @@
     color:#fff; background:var(--accent); border-color:var(--ink);
     box-shadow:2px 2px 0 var(--ink);
   }
-  .plan-item-sub{font-size:13.5px; color:var(--text-dim); margin-top:4px; line-height:1.6; font-weight:700;}
-  .plan-item-hint{font-size:11px; color:var(--text-faint); margin-top:6px; font-weight:800;}
+  .plan-item-sub{font-size:13px; color:var(--text-dim); margin-top:3px; line-height:1.45; font-weight:700;}
+  .plan-item-hint{font-size:11px; color:var(--text-faint); margin-top:4px; font-weight:800;}
   .plan-item-detail{display:none;}
   .plan-item-detail.open{display:block;}
   .rpe-chip{
@@ -460,25 +460,20 @@
     background:var(--yellow); color:var(--ink); margin-left:6px; border:1.5px solid var(--ink);
   }
   .history-chip{
-    display:inline-block; font-size:11px; color:var(--text-faint); margin-top:4px; font-weight:700;
+    display:inline-block; font-size:11px; color:var(--text-faint); margin-top:3px; font-weight:700;
   }
   .history-chip.prev{color:var(--text-dim); font-weight:800;}
   .history-chip.prev b{color:var(--accent-2); font-weight:900;}
-  .rpe-hint-banner{
-    margin-top:14px; font-size:11.5px; color:var(--ink); line-height:1.7; font-weight:700;
-    background:var(--yellow); border:2.5px solid var(--ink);
-    border-radius:13px; padding:11px 13px; box-shadow:3px 3px 0 var(--ink);
-  }
   .plan-inputs{display:flex; gap:10px; margin-top:12px;}
   .mini-field{flex:1;}
   .mini-field .flabel{font-size:9px; font-weight:800; color:var(--text-faint); margin-bottom:4px; display:block;}
   .mini-field input{padding:9px 10px; font-size:13px; text-align:center;}
-  .note-input{margin-top:10px; font-size:12px; padding:9px 12px;}
+  .note-input{margin-top:8px; font-size:12px; padding:7px 11px;}
 
   /* セット単位入力 */
   .set-row{
-    display:grid; grid-template-columns:40px 1fr 1fr 52px; align-items:center; gap:8px; margin-top:10px;
-    padding:8px 2px; border-bottom:1.5px dashed var(--line-soft); border-radius:8px;
+    display:grid; grid-template-columns:34px 1fr 1fr 34px 24px; align-items:center; gap:6px; margin-top:4px;
+    padding:3px 2px; border-bottom:1.5px dashed var(--line-soft); border-radius:8px;
   }
   .set-row:last-of-type{border-bottom:none;}
   .set-row.just-copied{animation:copy-flash .6s ease;}
@@ -493,9 +488,9 @@
   }
   .set-field{display:flex; flex-direction:column; gap:2px; min-width:0;}
   .set-field .flabel{font-size:8.5px; font-weight:800; color:var(--text-faint);}
-  .set-field input{padding:9px 6px; font-size:17px; font-weight:800; text-align:center; border-width:2px; width:100%;}
+  .set-field input{padding:6px 4px; font-size:16px; font-weight:800; text-align:center; border-width:2px; width:100%;}
   .set-copy-btn{
-    width:36px; height:36px; border-radius:50%; justify-self:center;
+    width:32px; height:32px; border-radius:50%; justify-self:center;
     display:flex; align-items:center; justify-content:center;
     font-size:16px; font-weight:900; color:#fff; background:var(--accent);
     border:2px solid var(--ink); box-shadow:2px 2px 0 var(--ink);
@@ -503,6 +498,19 @@
   }
   .set-copy-btn:active{transform:translate(2px,2px) scale(0.9); box-shadow:0 0 0 var(--ink);}
   .set-copy-placeholder{width:100%; height:100%;}
+  .set-del-btn{
+    width:24px; height:24px; border-radius:50%; justify-self:center;
+    display:flex; align-items:center; justify-content:center;
+    font-size:14px; font-weight:900; line-height:1; color:var(--text-faint);
+    background:var(--card-2); border:1.5px solid var(--line-soft);
+  }
+  .set-del-btn:active{transform:scale(0.9);}
+  .add-set-btn{
+    width:100%; margin-top:8px; padding:7px; border-radius:9px;
+    border:2px dashed var(--line-soft); background:none;
+    font-size:11.5px; font-weight:800; color:var(--text-faint);
+  }
+  .add-set-btn:active{transform:scale(0.98);}
   .set-detail-list{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
   .set-detail-chip{
     font-size:10.5px; font-weight:800; color:var(--ink); background:var(--card-2);
@@ -766,8 +774,7 @@
     <div id="inputEditLabel" class="history-chip" style="display:none; margin-bottom:10px;"></div>
     <div class="seg" id="inputExSeg" style="margin-bottom:8px;"></div>
     <div class="seg" id="inputDaySeg"></div>
-    <div class="rpe-hint-banner">🎯 重量は「目標RPE」を目安に、その日の感覚で選んでください。前回の実績も参考にどうぞ。</div>
-    <div id="inputPlanList" style="margin-top:16px;"></div>
+    <div id="inputPlanList" style="margin-top:14px;"></div>
     <button class="cta" id="inputSaveBtn" style="margin-top:6px;" onclick="saveWorkout()">この内容で保存</button>
   </div>
 </div>
@@ -1767,6 +1774,7 @@ function commitOnboarding(){
     const maxVal = round25(parseFloat(document.getElementById(`onboardMax_${ex.id}`).value));
     const goalVal = round25(parseFloat(document.getElementById(`onboardGoal_${ex.id}`).value));
     ex.goal = goalVal;
+    ex.start = maxVal;
     DATA.currentMax[ex.id] = maxVal;
     DATA.maxHistory[ex.id] = [{date:todayKey(), weight:maxVal}];
   });
@@ -2065,8 +2073,10 @@ function renderInputSheet(){
             <div class="set-field"><span class="flabel">重量kg</span><input type="text" inputmode="decimal" placeholder="RPE目安に" value="${s.weight}" oninput="updateSet(${i},${si},'weight',this.value)"></div>
             <div class="set-field"><span class="flabel">reps</span><input type="number" value="${s.reps}" oninput="updateSet(${i},${si},'reps',this.value)"></div>
             ${si>0 ? `<button type="button" class="set-copy-btn" onclick="copyFromPrevSet(${i},${si})">↓</button>` : `<div class="set-copy-placeholder"></div>`}
+            ${e.sets.length>1 ? `<button type="button" class="set-del-btn" onclick="removeSet(${i},${si})" aria-label="セットを削除">×</button>` : `<div class="set-copy-placeholder"></div>`}
           </div>
         `).join("")}
+        <button type="button" class="add-set-btn" onclick="addSet(${i})">＋ セットを追加</button>
 
         <input type="text" class="note-input" placeholder="メモ（フォームの感触など）" value="${escapeHtml(e.note)}" oninput="updateEntry(${i},'note',this.value)">
       </div>
@@ -2104,6 +2114,20 @@ function copyFromPrevSet(entryIdx, setIdx){
     void row.offsetWidth; // reflow でアニメーションを再トリガー
     row.classList.add("just-copied");
   }
+}
+function addSet(entryIdx){
+  const sets = inputState.entries[entryIdx].sets;
+  const last = sets[sets.length-1];
+  sets.push({weight:"", reps: last ? last.reps : 0});
+  renderInputSheet();
+  saveDraft();
+}
+function removeSet(entryIdx, setIdx){
+  const sets = inputState.entries[entryIdx].sets;
+  if(sets.length<=1) return;
+  sets.splice(setIdx,1);
+  renderInputSheet();
+  saveDraft();
 }
 function saveWorkout(){
   const ex = DATA.exercises.find(e=>e.id===inputState.exId);
