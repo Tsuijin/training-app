@@ -6,11 +6,13 @@
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<!-- black-translucent にすると、iOS のホーム画面アプリで Web ビューが画面上端(y=0)から
-     始まるのに高さは「画面高 − ステータスバー高」しか確保されず、画面下端に Web ビューの
-     外側の帯（実測 47pt）ができてしまう。CSS では一切描画できない領域なので default にする。
-     実測値: innerHeight 797 / screen.height 844 / safe-area-inset-top 47（iPhone 12〜14系）
-     ※ この指定は iOS がホーム画面追加時に読むため、変更後はアイコンの追加し直しが必要。 -->
+<!-- black-translucent にすると、iOS のホーム画面アプリでレイアウトビューポートが
+     「画面高 − ステータスバー高」しか確保されず（実測 innerHeight 797 / screen.height 844 /
+     safe-area-inset-top 47、iPhone 12〜14系）、画面下端に 47pt の帯が余って
+     position:fixed; bottom:0 では届かなくなる。default にすると解消する（実機で確認済み）。
+     引き換えにステータスバーの背景が白（文字は黒）になる。透過に戻したい場合は、
+     下部バーを --vp-shortfall 分だけ下へ伸ばす対応が別途必要。
+     ※ この指定は iOS がホーム画面追加時に読むため、変更時はアイコンの追加し直しが必要。 -->
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>MAX LOG | トレーニング記録</title>
 <style>
@@ -297,13 +299,11 @@
     background:var(--card); box-shadow:3px 3px 0 var(--ink); color:var(--ink);
   }
   .cta-float-wrap{
-    /* ボタン下の余白は .cta のドロップシャドウ（5px）とぴったり同じ。こうすると
-       ボタンより下の帯が黒い影で埋まり、白いデッドスペースが1pxも残らない。
-       backdrop-filter は「背後にあるもの」をぼかすフィルタなので、背後が白一色の
-       この領域はいくらぼかしても白のまま。ぼかしで解決せず、領域自体を無くしている。
-       --safe-bottom も意図的に使わない（空けるとその分だけ白帯になるため）。
-       ボタンは71px あるので、ホームインジケータのジェスチャー領域を除いても上側で十分タップできる。 */
-    --cta-gap: 5px;
+    /* ボタン下の余白。うち5pxは .cta のドロップシャドウが埋めるので、実際に空くのは残り。
+       ホームインジケータ（画面下端から約13pt）に被らない高さにして、画面に張り付いた
+       印象を避ける。空いた部分は blur-stack がバー全体を覆っているのでぼけて見える。
+       --safe-bottom（34pt）をそのまま使うと空きすぎるため、固定値で調整している。 */
+    --cta-gap: 18px;
     position:fixed; left:0; right:0; bottom:0; z-index:15;
     max-width:520px; margin:0 auto; box-sizing:border-box;
     /* 上パディングはぼかしがフェードするための助走区間。広いほど境目が自然になる（ボタン位置は下基準なので動かない）。 */
@@ -807,7 +807,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 03:51";
+const APP_VERSION = "2026-07-30 04:03";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
