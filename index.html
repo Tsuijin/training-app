@@ -801,7 +801,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 02:58";
+const APP_VERSION = "2026-07-30 03:16";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -2910,6 +2910,56 @@ if(RECOVERY_NOTICE){
   showToast(RECOVERY_NOTICE);
   RECOVERY_NOTICE = "";
 }
+
+/* =========================================================================
+   自動アップデート
+   ---------------------------------------------------------------------
+   単一HTMLをGitHub Pagesに置く構成では、ホーム画面のPWAが古いHTMLを長時間
+   抱え込み、デプロイしても端末に届かないことがある（GitHub Pages 自体も
+   Cache-Control: max-age=600 を返す）。
+   起動時とフォアグラウンド復帰時に、キャッシュを迂回して公開中の APP_VERSION を
+   読みに行き、自分より新しければクエリ付きURLで一度だけ読み直す。
+   ========================================================================= */
+const UPDATE_MARK_KEY = "maxlog:updated-to";
+
+let lastUpdateCheck = 0;
+async function checkForUpdate(force){
+  if(APP_VERSION === "dev") return;              // ローカル編集中は何もしない
+  if(!location.protocol.startsWith("http")) return;
+  /* HTML全体を取り直すので、復帰のたびに走らせない（通信量対策）。 */
+  const now = Date.now();
+  if(!force && now - lastUpdateCheck < 600000) return;
+  lastUpdateCheck = now;
+  try{
+    const res = await fetch(`${location.pathname}?_cb=${Date.now()}`, {cache:"no-store"});
+    if(!res.ok) return;
+    const m = (await res.text()).match(/const APP_VERSION = "([^"]*)"/);
+    if(!m) return;
+    const latest = m[1];
+    if(!latest || latest === "dev" || latest === APP_VERSION) return;
+    /* 同じバージョンで何度もリロードしないよう、読み直す前に印を付ける。 */
+    if(sessionStorage.getItem("maxlog:reloading-to") === latest) return;
+    sessionStorage.setItem("maxlog:reloading-to", latest);
+    localStorage.setItem(UPDATE_MARK_KEY, latest);
+    location.replace(`${location.pathname}?v=${encodeURIComponent(latest)}`);
+  }catch(e){ /* オフライン等。次回に持ち越す */ }
+}
+
+/* 読み直し後、新しいバージョンで開けたことを知らせる。 */
+try{
+  const updatedTo = localStorage.getItem(UPDATE_MARK_KEY);
+  if(updatedTo && updatedTo === APP_VERSION){
+    localStorage.removeItem(UPDATE_MARK_KEY);
+    sessionStorage.removeItem("maxlog:reloading-to");
+    setTimeout(()=>showToast(`最新版に更新しました（${APP_VERSION}）`), 600);
+  }
+}catch(e){}
+
+checkForUpdate(true);
+/* ホーム画面アプリはバックグラウンドから復帰することが多いので、復帰時にも見に行く（10分に1回まで）。 */
+document.addEventListener("visibilitychange", ()=>{
+  if(document.visibilityState === "visible") checkForUpdate();
+});
 </script>
 </body>
 </html>
