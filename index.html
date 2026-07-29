@@ -359,6 +359,9 @@
 
   /* forms */
   label.field-label{display:block; font-size:11px; font-weight:800; color:var(--text-faint); margin:14px 0 6px; letter-spacing:0.5px;}
+  .onboard-ex-block{margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--line-soft);}
+  .onboard-ex-block:last-child{margin-bottom:0; padding-bottom:0; border-bottom:none;}
+  .onboard-ex-name{font-size:16px; font-weight:800; margin-bottom:2px;}
   input[type=text], input[type=number]{
     width:100%; background:var(--card-2); border:2px solid var(--ink); color:var(--text);
     padding:12px 14px; border-radius:12px; font-size:15px; outline:none; font-weight:700;
@@ -727,6 +730,17 @@
     <label class="field-label">新しい1RM (kg)</label>
     <input type="number" id="maxInput" inputmode="decimal" placeholder="例: 85.0">
     <button class="cta" style="margin-top:18px;" onclick="commitMax()">更新する</button>
+  </div>
+</div>
+
+<!-- ============ 初回セットアップ（現在のMAX・目標を入力） ============ -->
+<div class="sheet-scrim" id="onboardScrim"></div>
+<div class="sheet" id="onboardSheet">
+  <div class="sheet-head"><h2>はじめに</h2></div>
+  <div class="sheet-body">
+    <p style="font-size:13px; color:var(--text-faint); margin:0 0 16px; line-height:1.6;">現在のMAX重量と目標重量を入力してください。あとから設定でいつでも変更できます。</p>
+    <div id="onboardBody"></div>
+    <button class="cta" style="margin-top:18px;" onclick="commitOnboarding()">はじめる</button>
   </div>
 </div>
 
@@ -1142,8 +1156,8 @@ function defaultData(){
   const benchId = uid(), squatId = uid();
   return {
     exercises: [
-      {id:benchId, name:"ベンチプレス", goal:120, start:80, abbr:"BP"},
-      {id:squatId, name:"スクワット", goal:200, start:115, abbr:"SQ"},
+      {id:benchId, name:"ベンチプレス", goal:null, start:null, abbr:"BP"},
+      {id:squatId, name:"スクワット", goal:null, start:null, abbr:"SQ"},
     ],
     templates:{
       [benchId]:{
@@ -1181,24 +1195,18 @@ function defaultData(){
       },
     },
     maxHistory:{
-      [benchId]:seedHistory(82.5,97.5,6),
-      [squatId]:seedHistory(115,140,6),
+      [benchId]:[],
+      [squatId]:[],
     },
-    currentMax:{ [benchId]:97.5, [squatId]:140 },
+    currentMax:{ [benchId]:0, [squatId]:0 },
     records:{ [benchId]:{}, [squatId]:{} },
-    lastDay:{ [benchId]:"D1", [squatId]:"D1" },
+    lastDay:{},
     squatMenuV2: true,
     squatNamesSQ: true,
+    maxOnboardingV1: true,
+    lastDayFixV1: true,
+    onboarded: false,
   };
-}
-function seedHistory(start,end,n){
-  const arr=[]; const now=new Date();
-  for(let i=0;i<n;i++){
-    const d=new Date(now); d.setMonth(d.getMonth()-(n-1-i));
-    const w = start + (end-start)*(i/(n-1));
-    arr.push({date:d.toISOString().slice(0,10), weight:round25(w)});
-  }
-  return arr;
 }
 
 let DATA = load();
@@ -1208,7 +1216,7 @@ function load(){
     if(!raw) return defaultData();
     const parsed = JSON.parse(raw);
     if(!parsed.exercises || !parsed.exercises.length) return defaultData();
-    return migrateRecords(migrateTemplates(migrateSquatNamesSQ(migrateSquatMenuV2(migrateExercises(parsed)))));
+    return migrateLastDay(migrateMaxOnboarding(migrateRecords(migrateTemplates(migrateSquatNamesSQ(migrateSquatMenuV2(migrateExercises(parsed)))))));
   }catch(e){ return defaultData(); }
 }
 function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA)); }
@@ -1272,6 +1280,30 @@ function migrateExercises(data){
     }
     if(!ex.abbr) ex.abbr = defaultAbbr(ex.name);
   });
+  return data;
+}
+/* 旧バージョンの仮MAX値・仮MAX推移をリセットし、初回セットアップ（現在のMAX・目標の入力）を促す */
+function migrateMaxOnboarding(data){
+  if(data.maxOnboardingV1) return data;
+  (data.exercises||[]).forEach(ex=>{
+    ex.goal = null;
+    ex.start = null;
+    data.currentMax[ex.id] = 0;
+    data.maxHistory[ex.id] = [];
+  });
+  data.onboarded = false;
+  data.maxOnboardingV1 = true;
+  return data;
+}
+/* 一度も記録がない種目の lastDay（defaultData由来の仮値）をクリアし、DAY1から開始できるようにする */
+function migrateLastDay(data){
+  if(data.lastDayFixV1) return data;
+  (data.exercises||[]).forEach(ex=>{
+    const recs = (data.records||{})[ex.id];
+    const hasAnyRecord = recs && Object.keys(recs).length>0;
+    if(!hasAnyRecord) delete data.lastDay[ex.id];
+  });
+  data.lastDayFixV1 = true;
   return data;
 }
 /* 種目名から短縮表記のデフォルト値を推測する（ベンチ/スクワットは固定、それ以外は先頭2文字） */
@@ -1628,7 +1660,8 @@ function renderCalendarCells(){
 }
 
 function nextDay(exId){
-  const last = DATA.lastDay[exId] || "D1";
+  const last = DATA.lastDay[exId];
+  if(!last) return "D1";
   return last==="D1" ? "D2" : last==="D2" ? "D3" : "D1";
 }
 
@@ -1698,6 +1731,48 @@ function commitMax(){
   applyNewMax(maxEditExId, raw);
   save();
   closeSheet("maxSheet");
+  renderAll();
+}
+
+/* =========================================================================
+   初回セットアップ（現在のMAX・目標の入力）
+   ========================================================================= */
+function checkOnboarding(){
+  if(DATA.onboarded || !DATA.exercises.length) return;
+  renderOnboardSheet();
+  openSheet("onboardSheet");
+}
+function renderOnboardSheet(){
+  const body = document.getElementById("onboardBody");
+  body.innerHTML = DATA.exercises.map(ex=>`
+    <div class="onboard-ex-block">
+      <div class="onboard-ex-name">${escapeHtml(ex.name)}</div>
+      <label class="field-label">現在のMAX (kg)</label>
+      <input type="number" inputmode="decimal" id="onboardMax_${ex.id}" placeholder="例: 80">
+      <label class="field-label">目標 (kg)</label>
+      <input type="number" inputmode="decimal" id="onboardGoal_${ex.id}" placeholder="例: 100">
+    </div>
+  `).join("");
+}
+function commitOnboarding(){
+  for(const ex of DATA.exercises){
+    const maxVal = parseFloat(document.getElementById(`onboardMax_${ex.id}`).value);
+    const goalVal = parseFloat(document.getElementById(`onboardGoal_${ex.id}`).value);
+    if(!maxVal || maxVal<=0 || !goalVal || goalVal<=0){
+      showToast("すべての項目に数値を入力してください");
+      return;
+    }
+  }
+  DATA.exercises.forEach(ex=>{
+    const maxVal = round25(parseFloat(document.getElementById(`onboardMax_${ex.id}`).value));
+    const goalVal = round25(parseFloat(document.getElementById(`onboardGoal_${ex.id}`).value));
+    ex.goal = goalVal;
+    DATA.currentMax[ex.id] = maxVal;
+    DATA.maxHistory[ex.id] = [{date:todayKey(), weight:maxVal}];
+  });
+  DATA.onboarded = true;
+  save();
+  closeSheet("onboardSheet");
   renderAll();
 }
 
@@ -2117,7 +2192,6 @@ function addExercise(){
   DATA.maxHistory[id] = [];
   DATA.currentMax[id] = 0;
   DATA.records[id] = {};
-  DATA.lastDay[id] = "D1";
   save();
   editExercise(id);
 }
@@ -2582,6 +2656,7 @@ setupSwipeToClose("inputSheet");
 setupSwipeToClose("statsSheet");
 
 renderAll();
+checkOnboarding();
 </script>
 </body>
 </html>
