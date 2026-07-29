@@ -6,14 +6,18 @@
 <meta name="color-scheme" content="light only">
 <meta name="theme-color" content="#ffffff">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<!-- ステータスバーを透過させる指定。iOS のホーム画面アプリでは、この指定のとき
-     レイアウトビューポートが「画面高 − ステータスバー高」しか確保されないことがある
-     （実測 innerHeight 797 / screen.height 844 / safe-area-inset-top 47、iPhone 12〜14系）。
-     差分の 47pt は画面下端に余り、position:fixed; bottom:0 では届かない。
-     その分を applyViewportShortfall() が --vp-shortfall として測り、下部バーを
-     下方向へ伸ばして覆う。
+<!-- black-translucent にはしないこと（2026-07-30 実機検証済み）。
+     iPhone 12〜14系のホーム画面アプリで black-translucent を指定すると、
+     レイアウトビューポートが「画面高 − ステータスバー高」しか確保されず
+     （実測 innerHeight 797 / screen.height 844 / safe-area-inset-top 47）、
+     画面下端に 47pt の帯が余る。この帯は Web ビューの外側で、CSS からは届かない。
+       検証方法: 下部バーを bottom:-47px で張り出させ、同時に html（キャンバス）の
+       背景を黒にして実機で確認 → 帯は黒くならず白のままだった。つまり
+       要素の張り出しもキャンバスの背景も届かない＝ページの描画領域外。
+     default にすると Web ビューがステータスバーの下から画面下端までになり解消する。
+     引き換えにステータスバーの背景が白（文字は黒）になるが、これは両立できない。
      ※ この指定は iOS がホーム画面追加時に読むため、変更時はアイコンの追加し直しが必要。 -->
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <title>MAX LOG | トレーニング記録</title>
 <style>
   :root{
@@ -36,19 +40,12 @@
     /* env() が使えない環境でも calc()/max() が無効値にならないようフォールバックを必ず付ける */
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
-    /* レイアウトビューポートが画面下端に届かない分。applyViewportShortfall() が実測して入れる。 */
-    --vp-shortfall: 0px;
     --radius-l:20px;
     --radius-m:14px;
     --radius-s:9px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;height:100%; height:100dvh; overflow:hidden; overscroll-behavior:none; background:#ffffff; color-scheme:light;}
-  /* キャンバス（ページ最外周）の色。body が position:fixed で全面を覆うため通常は見えないが、
-     レイアウトビューポートが画面下端に届かない iOS の状況では、その余った帯だけがこの色になる。
-     下部バーの張り出しが届いていればぼかしで隠れるので、この色が見えたら
-     「張り出しはクリップされたが、キャンバスには届いている」と切り分けられる。 */
-  html{background:var(--ink);}
   #scrollWrap{
     height:100%; height:100dvh; overflow-y:auto; -webkit-overflow-scrolling:touch;
     overscroll-behavior:none; background:#ffffff;
@@ -311,16 +308,10 @@
        印象を避ける。空いた部分は blur-stack がバー全体を覆っているのでぼけて見える。
        --safe-bottom（34pt）をそのまま使うと空きすぎるため、固定値で調整している。 */
     --cta-gap: 18px;
-    position:fixed; left:0; right:0; z-index:15;
-    /* レイアウトビューポートが画面下端に届かない分だけ下へ伸ばし、ぼかしで余白を覆う。
-       同じ量を下パディングにも足しているので、伸ばした結果ボタンが下がることはない
-       （＝万一この張り出しがクリップされても、ボタンが画面外に切れる事故が起きない）。
-       ボタンの高さ位置の微調整は --cta-gap だけで行えば、meta 変更を伴わないので
-       ホーム画面アイコンの追加し直しなしで反映できる。 */
-    bottom: calc(-1 * var(--vp-shortfall));
+    position:fixed; left:0; right:0; bottom:0; z-index:15;
     max-width:520px; margin:0 auto; box-sizing:border-box;
     /* 上パディングはぼかしがフェードするための助走区間。広いほど境目が自然になる（ボタン位置は下基準なので動かない）。 */
-    padding:30px 16px calc(var(--cta-gap) + var(--vp-shortfall));
+    padding:30px 16px var(--cta-gap);
     pointer-events:none;
   }
   .cta-float-wrap .cta{position:relative; z-index:1; pointer-events:auto;}
@@ -820,7 +811,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 04:12";
+const APP_VERSION = "2026-07-30 04:32";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -2412,20 +2403,6 @@ function measureSafeInset(side){
   }catch(e){ return 0; }
 }
 
-/* iOS のホーム画面アプリで black-translucent を指定すると、Web ビューは画面全体を覆うのに
-   レイアウトビューポートが「画面高 − ステータスバー高」しか確保されないことがある。
-   その差分を測って --vp-shortfall に入れ、下部バーを下へ伸ばして画面下端まで覆う。 */
-function applyViewportShortfall(){
-  let px = 0;
-  try{
-    const shortfall = window.screen.height - window.innerHeight;
-    /* safe-area-inset-top が返る＝ページがステータスバーの下まで広がっている。
-       このとき差分は画面下に余っている分なので埋める必要がある。
-       default 指定時（safe-top が 0）は差分＝ステータスバーの占有分なので何もしない。 */
-    if(measureSafeInset("top") > 0 && shortfall > 8 && shortfall < 120) px = shortfall;
-  }catch(e){}
-  document.documentElement.style.setProperty("--vp-shortfall", px + "px");
-}
 
 /* 端末実測値の表示。iOS の実機でしか分からない値（セーフエリアの実値、ビューポートが
    画面全体を覆えているか、ボタンが実際に画面下から何pxの位置にあるか）を出す。
@@ -2445,7 +2422,6 @@ function renderDiagnostics(){
   const underStatusBar = sTop > 0;
   const bottomDead = underStatusBar ? shortfall : 0;
   const meta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
-  const applied = getComputedStyle(document.documentElement).getPropertyValue("--vp-shortfall").trim();
   const wrap = document.querySelector(".cta-float-wrap");
   const wrapBottom = wrap ? Math.round(wrap.getBoundingClientRect().bottom) : -1;
   el.textContent = [
@@ -2454,7 +2430,7 @@ function renderDiagnostics(){
     vv ? `visualVP ${Math.round(vv.height)} offset ${Math.round(vv.offsetTop)}` : "visualVP なし",
     `ボタン下端→ビューポート下 ${gap}px`,
     `standalone ${navigator.standalone} / statusbar ${meta ? meta.content : "なし"}`,
-    `画面下の余り ${bottomDead}pt / 補正 ${applied || "0px"} / バー下端 ${wrapBottom}`,
+    `画面下の描画できない帯 ${bottomDead}pt ${bottomDead > 8 ? "← 要修正" : "（なし）"} / バー下端 ${wrapBottom}`,
   ].join("\n");
 }
 
@@ -2977,10 +2953,6 @@ function setupSwipeToClose(sheetId){
 }
 setupSwipeToClose("inputSheet");
 setupSwipeToClose("statsSheet");
-
-applyViewportShortfall();
-window.addEventListener("resize", applyViewportShortfall);
-window.addEventListener("orientationchange", ()=>setTimeout(applyViewportShortfall, 300));
 
 renderAll();
 checkOnboarding();
