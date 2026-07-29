@@ -695,6 +695,7 @@
     <button class="danger-btn" id="clearDataBtn" style="margin-top:16px;" onclick="clearAllData()">全データを消去</button>
 
     <div id="appVersionLabel" style="margin-top:18px; text-align:center; font-size:11px; font-weight:700; color:var(--text-faint);"></div>
+    <pre id="diagInfo" style="margin:8px 0 0 0; text-align:center; font-size:10px; line-height:1.6; font-weight:700; color:var(--text-faint); white-space:pre-wrap; font-family:ui-monospace,'SF Mono',Menlo,monospace;"></pre>
   </div>
 </div>
 
@@ -801,7 +802,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 03:16";
+const APP_VERSION = "2026-07-30 03:26";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -2377,6 +2378,35 @@ function renderSettings(){
   renderSnapshotList();
   const ver = document.getElementById("appVersionLabel");
   if(ver) ver.textContent = `バージョン ${APP_VERSION}`;
+  renderDiagnostics();
+}
+
+/* 端末実測値の表示。iOS の実機でしか分からない値（セーフエリアの実値、ビューポートが
+   画面全体を覆えているか、ボタンが実際に画面下から何pxの位置にあるか）を出す。
+   レイアウト不具合の切り分け用。 */
+function renderDiagnostics(){
+  const el = document.getElementById("diagInfo");
+  if(!el) return;
+  let sTop = -1, sBottom = -1;
+  try{
+    const probe = document.createElement("div");
+    probe.style.cssText = "position:fixed;left:0;top:0;width:0;pointer-events:none;visibility:hidden;height:env(safe-area-inset-bottom,0px);";
+    document.body.appendChild(probe);
+    sBottom = probe.getBoundingClientRect().height;
+    probe.style.height = "env(safe-area-inset-top,0px)";
+    sTop = probe.getBoundingClientRect().height;
+    probe.remove();
+  }catch(e){}
+  const cta = document.querySelector(".cta-float-wrap .cta");
+  const gap = cta ? Math.round(window.innerHeight - cta.getBoundingClientRect().bottom) : -1;
+  const vv = window.visualViewport;
+  el.textContent = [
+    `safe top ${Math.round(sTop)} / bottom ${Math.round(sBottom)}`,
+    `innerH ${window.innerHeight}  screenH ${window.screen.height}  dpr ${window.devicePixelRatio}`,
+    vv ? `visualVP ${Math.round(vv.height)} offset ${Math.round(vv.offsetTop)}` : "visualVP なし",
+    `ボタン下端→画面下 ${gap}px`,
+    `standalone ${navigator.standalone}`,
+  ].join("\n");
 }
 
 /* ---------- 復元ポイント ---------- */
