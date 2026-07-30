@@ -524,6 +524,17 @@
     font-size:11.5px; font-weight:800; color:var(--text-faint);
   }
   .add-set-btn:active{transform:scale(0.98);}
+  /* 日別詳細：未実施の日をあとから埋めるための追加ボタン */
+  .detail-add-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+  .detail-add-btn{
+    flex:1 1 0; min-width:100px; padding:12px 8px; border-radius:12px;
+    border:2px dashed var(--line-soft); background:none;
+    font-size:12.5px; font-weight:900; color:var(--text-dim);
+  }
+  .detail-add-btn:active{transform:scale(0.98);}
+  .detail-add-note{
+    margin-top:22px; text-align:center; font-size:11.5px; font-weight:800; color:var(--text-faint);
+  }
   .set-detail-list{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;}
   .set-detail-chip{
     font-size:10.5px; font-weight:800; color:var(--ink); background:var(--card-2);
@@ -817,7 +828,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 10:37";
+const APP_VERSION = "2026-07-30 11:18";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -1718,14 +1729,27 @@ function monthTitle(){
   return `${d.getFullYear()}年 ${d.getMonth()+1}月`;
 }
 
+/* ---------- 「実施した」の判定 ----------
+   チェック（completed）の入った項目が1つ以上ある記録だけを実績として扱う。
+   チェックの無い項目は「予定したがやっていない」なので、カレンダーのバッジ・
+   週間コンボ・日別詳細のいずれにも出さない。唯一の項目のチェックを外せば
+   その日は未実施に戻る。
+   ※データ自体は消さない（invariant 2-3/2-4）。チェックを入れ直せば復活する。 */
+function completedLogs(rec){
+  return (rec.logs||[]).filter(l=>l.completed);
+}
+function performedRecs(exId, dateKey){
+  return ((DATA.records[exId]||{})[dateKey]||[]).filter(r=>completedLogs(r).length>0);
+}
+
 /* その日に実施した種目ごとのバッジ（1種目なら単一の円、2種目なら二重の円：
    内側＝DATA.exercisesの先頭（BP想定）、外側＝2番目（SQ想定）） */
 /* その日に実施した種目の色で、日付を囲う大きな丸を描く。
    2種目とも実施した日は二重丸（外側＝DATA.exercisesの2番目/SQ想定、内側＝1番目/BP想定）。 */
 function calendarDayBadgeSvg(dateKey){
   const infos = DATA.exercises.map(ex=>{
-    const recs = (DATA.records[ex.id]||{})[dateKey];
-    if(!recs || !recs.length) return null;
+    const recs = performedRecs(ex.id, dateKey);
+    if(!recs.length) return null;
     return { color: DAY_COLORS[recs[0].day] };
   }).filter(Boolean);
   if(!infos.length) return "";
@@ -1773,12 +1797,10 @@ function weekStart(date){
   return d;
 }
 function daysDoneInWeek(exId, weekStartDate){
-  const recs = DATA.records[exId]||{};
   const set = new Set();
   for(let i=0;i<7;i++){
     const d = new Date(weekStartDate); d.setDate(weekStartDate.getDate()+i);
-    const dayRecs = recs[todayKey(d)];
-    if(dayRecs) dayRecs.forEach(r=>set.add(r.day));
+    performedRecs(exId, todayKey(d)).forEach(r=>set.add(r.day));
   }
   return set;
 }
@@ -1981,9 +2003,11 @@ function openDayDetail(dateKey, sourceCell){
   const d = new Date(dateKey);
   document.getElementById("detailTitle").textContent = `${d.getMonth()+1}月${d.getDate()}日の記録`;
   const body = document.getElementById("detailBody");
+  /* 実施した（チェックの入った）項目だけを見せる。チェックの無い項目はやっていないので出さない。
+     全部チェックが外れている記録は、その日の実績としては存在しない扱いにする。 */
   const exBlocks = DATA.exercises.map(ex=>{
-    const recs = (DATA.records[ex.id]||{})[dateKey];
-    if(!recs || !recs.length) return "";
+    const recs = performedRecs(ex.id, dateKey);
+    if(!recs.length) return "";
     return `
       <div class="detail-ex-label">${escapeHtml(ex.abbr||defaultAbbr(ex.name))} ${escapeHtml(ex.name)}</div>
       ${recs.map(rec=>`
@@ -1991,9 +2015,9 @@ function openDayDetail(dateKey, sourceCell){
           <div class="next-badge" style="background:${DAY_COLORS[rec.day]}22;color:${DAY_COLORS[rec.day]};">${dayDisplay(rec.day)} · ${escapeHtml(rec.dayLabel||"")}</div>
           <button type="button" class="tiny-btn accent" onclick="editDayRecord('${ex.id}','${dateKey}','${rec.day}')">✎ 編集</button>
         </div>
-        ${rec.logs.map(l=>`
+        ${completedLogs(rec).map(l=>`
           <div class="plan-item">
-            <div class="plan-item-name">${l.completed?"✅":"⬜︎"} ${escapeHtml(l.name)}</div>
+            <div class="plan-item-name">✅ ${escapeHtml(l.name)}</div>
             <div class="plan-item-sub">予定: ${escapeHtml(l.plannedText)}</div>
             <div class="set-detail-list">
               ${(l.sets||[]).map((s,si)=>`<span class="set-detail-chip">SET${si+1}: ${s.weight||"-"}kg × ${s.reps}reps</span>`).join("")}
@@ -2004,23 +2028,54 @@ function openDayDetail(dateKey, sourceCell){
       `).join(`<div style="height:6px;"></div>`)}
     `;
   }).filter(Boolean);
-  body.innerHTML = exBlocks.length
-    ? exBlocks.join(`<div style="height:16px;"></div>`)
-    : `<div class="empty-state"><div class="glyph">🌙</div>この日の記録はありません</div>`;
+  body.innerHTML = (exBlocks.length
+      ? exBlocks.join(`<div style="height:16px;"></div>`)
+      : `<div class="empty-state"><div class="glyph">🌙</div>この日は未実施です</div>`)
+    + dayDetailAddHtml(dateKey);
   openSheet("detailSheet");
+}
+/* 未実施の日・種目をあとから記録するための追加ボタン。
+   未来の日付には出さない（「あとから埋める」用途なので今日まで）。 */
+function dayDetailAddHtml(dateKey){
+  if(!DATA.exercises.length) return "";
+  if(dateKey > todayKey()){
+    return `<div class="detail-add-note">まだ先の日付です</div>`;
+  }
+  return `
+    <div class="eyebrow" style="margin-top:22px;">この日の記録を追加・編集</div>
+    <div class="detail-add-row">
+      ${DATA.exercises.map(ex=>`
+        <button type="button" class="detail-add-btn" onclick="addDayRecord('${dateKey}','${ex.id}')">
+          ＋ ${escapeHtml(ex.abbr||defaultAbbr(ex.name))}
+        </button>
+      `).join("")}
+    </div>`;
 }
 
 /* =========================================================================
    トレーニング入力
    ========================================================================= */
-let inputState = { exId:null, day:"D1", entries:[], editingDateKey:null };
+/* editingDateKey: 日付を指定した入力（カレンダー経由）のときだけ入る。null＝今日の通常入力
+   editingExisting: 既存の記録を「✎ 編集」で開いたとき true（種目・DAYを固定する） */
+let inputState = { exId:null, day:"D1", entries:[], editingDateKey:null, editingExisting:false };
 
 function openWorkoutInput(){
   inputState.editingDateKey = null;
+  inputState.editingExisting = false;
   const defaultEx = DATA.exercises.find(e=>e.id===inputState.exId) || DATA.exercises[0];
   if(!defaultEx) return;
   switchInputExercise(defaultEx.id);
   openSheet("inputSheet");
+}
+/* 保存済みの記録を入力用のエントリに戻す */
+function entriesFromRec(exId, rec){
+  return (rec.logs||[]).map(l=>({
+    name:l.name, variants:null, plannedText:l.plannedText, rpeText:null,
+    hint:"", isMaxTest:false, mode:"fixed",
+    hist: lastPerformed(exId, l.name, 3),
+    sets: (l.sets||[]).map(s=>({weight:s.weight, reps:s.reps})),
+    completed: l.completed, note: l.note||""
+  }));
 }
 /* カレンダーの日別詳細シートから、過去の記録を編集する */
 function editDayRecord(exId, dateKey, day){
@@ -2030,20 +2085,59 @@ function editDayRecord(exId, dateKey, day){
   inputState.exId = exId;
   inputState.day = day;
   inputState.editingDateKey = dateKey;
-  inputState.entries = rec.logs.map(l=>({
-    name:l.name, variants:null, plannedText:l.plannedText, rpeText:null,
-    hint:"", isMaxTest:false, mode:"fixed",
-    hist: lastPerformed(exId, l.name, 3),
-    sets: (l.sets||[]).map(s=>({weight:s.weight, reps:s.reps})),
-    completed: l.completed, note: l.note||""
-  }));
+  inputState.editingExisting = true;
+  inputState.entries = entriesFromRec(exId, rec);
   closeSheet("detailSheet");
   renderInputSheet();
   openSheet("inputSheet");
 }
+/* カレンダーの日別詳細シートから、その日の記録をあとから入力する（未実施の日を埋める）。
+   種目とDAYは入力シート上で切り替えられる。 */
+function addDayRecord(dateKey, exId){
+  const ex = DATA.exercises.find(e=>e.id===exId) || DATA.exercises[0];
+  if(!ex) return;
+  inputState.editingDateKey = dateKey;
+  inputState.editingExisting = false;
+  closeSheet("detailSheet");
+  switchInputExercise(ex.id);
+  openSheet("inputSheet");
+}
+/* あとから記録を入れるときの初期DAY。
+   ・その日に「チェックが全部外れた記録」が残っていればそれを拾う（未実施に戻した日を埋め直す用）
+   ・無ければ、その日にまだ使っていないDAYを、直前に実施したDAYの次から順に選ぶ */
+function suggestDayForDate(exId, dateKey){
+  const recs = DATA.records[exId]||{};
+  const list = recs[dateKey]||[];
+  const blank = list.find(r=>completedLogs(r).length===0);
+  if(blank) return blank.day;
+  const prevKey = Object.keys(recs).filter(k=>k<dateKey).sort().pop();
+  const prevList = prevKey ? (recs[prevKey]||[]) : [];
+  const last = prevList.length ? prevList[prevList.length-1].day : null;
+  const order = ["D1","D2","D3"];
+  const start = last ? (order.indexOf(last)+1)%3 : 0;
+  const used = new Set(list.map(r=>r.day));
+  for(let i=0;i<3;i++){
+    const d = order[(start+i)%3];
+    if(!used.has(d)) return d;
+  }
+  return order[start];
+}
+/* 日付指定の入力：その日・その種目・そのDAYの記録が既にあれば復元、無ければテンプレートから組む */
+function loadEntriesForDate(exId, day, dateKey){
+  const rec = ((DATA.records[exId]||{})[dateKey]||[]).find(r=>r.day===day);
+  if(rec){ inputState.entries = entriesFromRec(exId, rec); return; }
+  buildInputEntries();
+}
 /* 種目を切り替える。その種目の下書きが今日の日付なら復元、無ければ新規に組み立てる */
 function switchInputExercise(exId){
   inputState.exId = exId;
+  /* 日付指定の入力では下書き（今日用）に触らない */
+  if(inputState.editingDateKey){
+    inputState.day = suggestDayForDate(exId, inputState.editingDateKey);
+    loadEntriesForDate(exId, inputState.day, inputState.editingDateKey);
+    renderInputSheet();
+    return;
+  }
   const draft = (DATA.drafts||{})[exId];
   if(draft && draft.date===todayKey()){
     inputState.day = draft.day;
@@ -2055,9 +2149,10 @@ function switchInputExercise(exId){
   }
   renderInputSheet();
 }
-/* 入力途中の内容を保存（シートを閉じても保持し、日付が変わったら破棄する） */
+/* 入力途中の内容を保存（シートを閉じても保持し、日付が変わったら破棄する）。
+   日付指定の入力は「今日の下書き」ではないので保存しない（今日の下書きを壊さないため）。 */
 function saveDraft(){
-  if(!inputState.exId) return;
+  if(!inputState.exId || inputState.editingDateKey) return;
   DATA.drafts = DATA.drafts || {};
   DATA.drafts[inputState.exId] = { date: todayKey(), day: inputState.day, entries: inputState.entries };
   save();
@@ -2111,28 +2206,34 @@ function lastPerformed(exId, name, n){
 }
 function renderInputSheet(){
   const ex = DATA.exercises.find(e=>e.id===inputState.exId);
-  const editing = !!inputState.editingDateKey;
+  const dated = !!inputState.editingDateKey;       // 日付を指定した入力
+  const locked = dated && inputState.editingExisting; // 既存記録の編集＝種目・DAYは固定
 
-  document.getElementById("inputSheetTitle").textContent = editing ? "記録を編集" : "今日のトレーニング";
-  document.getElementById("inputSaveBtn").textContent = editing ? "この内容で更新する" : "この内容で保存";
+  document.getElementById("inputSheetTitle").textContent =
+    locked ? "記録を編集" : dated ? "記録を追加" : "今日のトレーニング";
+  document.getElementById("inputSaveBtn").textContent =
+    locked ? "この内容で更新する" : dated ? "この日の記録を保存" : "この内容で保存";
 
   const editLabel = document.getElementById("inputEditLabel");
-  if(editing){
+  if(dated){
     const d = new Date(inputState.editingDateKey);
+    const md = `${d.getMonth()+1}月${d.getDate()}日`;
     editLabel.style.display = "block";
-    editLabel.textContent = `✎ ${d.getMonth()+1}月${d.getDate()}日 ・ ${escapeHtml(ex.name)} ・ ${dayDisplay(inputState.day)} を編集中`;
+    editLabel.textContent = locked
+      ? `✎ ${md} ・ ${ex.name} ・ ${dayDisplay(inputState.day)} を編集中`
+      : `＋ ${md} の記録を入力中（種目とDAYを選べます）`;
   }else{
     editLabel.style.display = "none";
   }
 
   const exSeg = document.getElementById("inputExSeg");
-  exSeg.style.display = editing ? "none" : "flex";
+  exSeg.style.display = locked ? "none" : "flex";
   exSeg.innerHTML = DATA.exercises.map(e2=>`
     <button class="${inputState.exId===e2.id?"active":""}" style="${inputState.exId===e2.id?"background:linear-gradient(135deg, var(--accent), var(--accent-2));":""}" onclick="switchInputExercise('${e2.id}')">${escapeHtml(e2.name)}</button>
   `).join("");
 
   const seg = document.getElementById("inputDaySeg");
-  seg.style.display = editing ? "none" : "flex";
+  seg.style.display = locked ? "none" : "flex";
   seg.innerHTML = ["D1","D2","D3"].map(d=>`
     <button class="${inputState.day===d?"active":""}" style="${inputState.day===d?`background:${DAY_COLORS[d]}`:""}" onclick="switchInputDay('${d}')">${dayDisplay(d)}</button>
   `).join("");
@@ -2175,7 +2276,14 @@ function renderInputSheet(){
     </div>
   `).join("");
 }
-function switchInputDay(d){ inputState.day=d; buildInputEntries(); renderInputSheet(); saveDraft(); }
+function switchInputDay(d){
+  inputState.day = d;
+  /* 日付指定の入力では、その日にそのDAYの記録が既にあれば読み込んで編集にする */
+  if(inputState.editingDateKey) loadEntriesForDate(inputState.exId, d, inputState.editingDateKey);
+  else buildInputEntries();
+  renderInputSheet();
+  saveDraft();
+}
 function toggleEntry(i){ inputState.entries[i].completed = !inputState.entries[i].completed; renderInputSheet(); saveDraft(); }
 function selectVariant(entryIdx, variantIdx){
   const e = inputState.entries[entryIdx];
@@ -2242,11 +2350,12 @@ function saveWorkout(){
   const existingIdx = dayList.findIndex(r=>r.day===inputState.day);
   if(existingIdx>=0) dayList[existingIdx] = newRec; else dayList.push(newRec);
 
-  // 過去日の編集では「直近やったDAY」や現在の1RMを遡って書き換えない
+  // 過去日の編集・追加では「直近やったDAY」や現在の1RMを遡って書き換えない
   if(!isEditingPast){
     DATA.lastDay[ex.id] = inputState.day;
   }
-  if(DATA.drafts) delete DATA.drafts[ex.id];
+  // 今日以外の日付を保存したときは、今日の下書きを消さない
+  if(!isEditingPast && DATA.drafts) delete DATA.drafts[ex.id];
 
   let maxResult = {updated:false};
   if(!isEditingPast){
@@ -2260,11 +2369,20 @@ function saveWorkout(){
 
   save();
   closeSheet("inputSheet");
-  const wasEditing = !!inputState.editingDateKey;
+  const wasDated = !!inputState.editingDateKey;
+  const wasExisting = inputState.editingExisting;
   inputState.editingDateKey = null;
+  inputState.editingExisting = false;
 
-  if(wasEditing){
+  /* チェックが1つも入っていない＝その種目はやっていないので、未実施として扱われることを伝える
+     （記録自体は残るので、チェックを入れ直せば元に戻る） */
+  const noneDone = !inputState.entries.some(e=>e.completed);
+  if(noneDone){
+    showToast("チェックが無いため未実施として保存しました");
+  }else if(wasExisting){
     showToast("記録を更新しました");
+  }else if(wasDated){
+    showToast("この日の記録を保存しました");
   }else if(maxResult.updated){
     if(!maxResult.isPR) showToast(`📌 現在の1RMを ${fmt1(maxResult.rounded)}kg に更新しました`);
     // PRの場合は applyNewMax 側でトースト・演出済み
