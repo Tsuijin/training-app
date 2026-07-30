@@ -192,9 +192,6 @@
   .percentile-main b{color:var(--accent-2); font-weight:900; font-size:1.18em; display:inline-block;}
   .percentile-sub{font-size:11.5px; font-weight:800; color:var(--text-dim); white-space:nowrap;}
 
-  @keyframes flame-flicker{0%{opacity:.72; transform:scaleY(1);} 100%{opacity:1; transform:scaleY(1.1);}}
-  @keyframes sparkle-twinkle{0%,100%{opacity:.15; transform:scale(.7);} 50%{opacity:1; transform:scale(1.2);}}
-
   /* 週間コンボ（トップバー固定表示） */
   .topbar-right{display:flex; align-items:center; gap:8px;}
   .combo-strip{display:flex; align-items:center; gap:5px;}
@@ -613,12 +610,21 @@
   }
   @keyframes hype-spin{ to{ transform:rotate(360deg); } }
   .hype-character{
-    width:170px; height:170px; z-index:2; animation:hype-pop 1.7s cubic-bezier(.34,1.9,.4,1) both;
-    filter:drop-shadow(0 14px 34px rgba(255,90,30,0.85));
+    /* キャラクター画像は 512x279（横長）。幅基準にして高さは画像のアスペクト比に任せる。 */
+    position:relative; width:min(78vw, 300px); z-index:2;
+    animation:hype-pop 1.7s cubic-bezier(.34,1.9,.4,1) both;
   }
-  .hype-character svg{width:100%; height:100%; display:block; overflow:visible;}
-  .hype-character .mascot-flame path{animation:flame-flicker 1s ease-in-out infinite alternate; transform-origin:center bottom;}
-  .hype-character .sparkle{animation:sparkle-twinkle 1.5s ease-in-out infinite;}
+  /* 白抜きの線画なので、明るいフラッシュ背景では白い body が溶けてしまう。
+     背後に暗いスポットライトを敷いて浮かせる。 */
+  .hype-character::before{
+    content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:112%; height:165%; border-radius:50%;
+    background:radial-gradient(closest-side, rgba(22,17,12,0.94), rgba(22,17,12,0.72) 55%, rgba(22,17,12,0) 78%);
+  }
+  .hype-character img{
+    position:relative; width:100%; height:auto; display:block;
+    filter:drop-shadow(0 10px 26px rgba(255,120,40,0.55));
+  }
   @keyframes hype-pop{
     0%{transform:scale(0) rotate(-20deg); opacity:0;}
     38%{transform:scale(1.4) rotate(10deg); opacity:1;}
@@ -811,7 +817,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 04:32";
+const APP_VERSION = "2026-07-30 10:37";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -836,101 +842,10 @@ const MILESTONES = [
   {p:100, emoji:"🏆", label:"目標達成"},
 ];
 
-/* 目標に対する到達度でバーベルキャラクターの姿（プレートの重さ・筋肉・表情・エフェクト）が変化する */
-const MASCOT_STAGES = [
-  {key:"egg",   threshold:0.25,      plateR:11, plateRings:1, armW:7,  bodyHW:20, face:"nervous",   effect:null,    label:"まだまだこれから"},
-  {key:"grow",  threshold:0.6,       plateR:17, plateRings:2, armW:11, bodyHW:25, face:"calm",      effect:"sweat", label:"力がついてきた！"},
-  {key:"power", threshold:0.95,      plateR:24, plateRings:2, armW:16, bodyHW:30, face:"intense",   effect:"flame", label:"パワー全開！"},
-  {key:"peak",  threshold:Infinity,  plateR:30, plateRings:3, armW:21, bodyHW:35, face:"fierce",    effect:"crown", label:"頂点に到達！"},
-];
-function pickMascotStage(ratio){
-  for(const s of MASCOT_STAGES){ if(ratio<=s.threshold) return s; }
-  return MASCOT_STAGES[MASCOT_STAGES.length-1];
-}
-function mascotFace(type){
-  const c="#3a2a1e";
-  switch(type){
-    case "nervous": return `
-      <circle cx="63" cy="60" r="2.1" fill="${c}"/><circle cx="77" cy="60" r="2.1" fill="${c}"/>
-      <path d="M60,52 q3,-3 7,-1" stroke="${c}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      <path d="M73,51 q4,-2 7,1" stroke="${c}" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-      <path d="M65,70 q5,2 10,0" stroke="${c}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
-    case "calm": return `
-      <circle cx="63" cy="60" r="2.3" fill="${c}"/><circle cx="77" cy="60" r="2.3" fill="${c}"/>
-      <path d="M63,70 q7,5 14,0" stroke="${c}" stroke-width="2" fill="none" stroke-linecap="round"/>`;
-    case "intense": return `
-      <path d="M58,58 l8,3 M67,58 l-9,3" stroke="${c}" stroke-width="2.1" stroke-linecap="round"/>
-      <path d="M73,58 l8,3 M82,58 l-9,3" stroke="${c}" stroke-width="2.1" stroke-linecap="round"/>
-      <path d="M57,49 l11,3" stroke="${c}" stroke-width="2" stroke-linecap="round"/>
-      <path d="M72,52 l11,-3" stroke="${c}" stroke-width="2" stroke-linecap="round"/>
-      <path d="M61,71 l4,-3 4,3 4,-3 4,3 4,-3" fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`;
-    case "fierce": return `
-      <rect x="56" y="55" width="28" height="8" rx="4" fill="#1a1a1f"/>
-      <path d="M56,55 q14,-7 28,0" stroke="#1a1a1f" stroke-width="2" fill="none"/>
-      <ellipse cx="70" cy="73" rx="7" ry="4.5" fill="#7a1f1f"/>`;
-    default: return "";
-  }
-}
-function barbellMascotSVG(stage){
-  const cx=70, headCy=64, headR=19, barY=22, barX1=8, barX2=132;
-  const plateLX=20, plateRX=120, skin="#ffcf9e", outline="#7a4a28";
-  const bodyHW=stage.bodyHW, bodyTop=80, bodyBot=130;
-  const shoulderY=90, shoulderLX=cx-bodyHW*0.85, shoulderRX=cx+bodyHW*0.85;
-  const elbowY=54, elbowLX=cx-(bodyHW+14), elbowRX=cx+(bodyHW+14);
-
-  let extraPlates = "";
-  if(stage.plateRings>=2){
-    extraPlates += `<circle cx="${plateLX-7}" cy="${barY}" r="${stage.plateR*0.7}" fill="#c23b3b"/>
-                     <circle cx="${plateRX+7}" cy="${barY}" r="${stage.plateR*0.7}" fill="#c23b3b"/>`;
-  }
-  if(stage.plateRings>=3){
-    extraPlates += `<circle cx="${plateLX-13}" cy="${barY}" r="${stage.plateR*0.5}" fill="#8f2020"/>
-                     <circle cx="${plateRX+13}" cy="${barY}" r="${stage.plateR*0.5}" fill="#8f2020"/>`;
-  }
-  const flameHtml = (stage.effect==="flame"||stage.effect==="crown") ? `
-    <g class="mascot-flame">
-      <path d="M${cx-bodyHW-6},92 q-8,-14 2,-24 q-2,10 6,12 q1,-8 8,-10 q-3,10 3,16 q-9,4 -19,6 Z" fill="url(#flameGrad)"/>
-      <path d="M${cx+bodyHW+6},92 q8,-14 -2,-24 q2,10 -6,12 q-1,-8 -8,-10 q3,10 -3,16 q9,4 19,6 Z" fill="url(#flameGrad)"/>
-    </g>` : "";
-  const sweatHtml = stage.effect==="sweat" ? `<path d="M${cx+headR-1},${headCy-8} q4,4 0,8 q-4,-2 0,-8 Z" fill="#7ec8ff"/>` : "";
-  const crownHtml = stage.effect==="crown" ? `
-    <g class="mascot-crown">
-      <path d="M${cx-16},${headCy-headR-2} l5,-12 6,8 5,-14 5,14 6,-8 5,12 Z" fill="url(#goldGrad)" stroke="#a8760f" stroke-width="1"/>
-      <circle cx="${cx-20}" cy="${headCy-headR-16}" r="2.5" fill="#ffe07a" class="sparkle"/>
-      <circle cx="${cx+22}" cy="${headCy-headR-10}" r="2" fill="#ffe07a" class="sparkle" style="animation-delay:.5s"/>
-      <circle cx="${cx}" cy="${headCy-headR-22}" r="1.8" fill="#ffe07a" class="sparkle" style="animation-delay:.9s"/>
-    </g>` : "";
-
-  return `<svg viewBox="0 0 140 140">
-    <defs>
-      <linearGradient id="flameGrad" x1="0" y1="1" x2="0" y2="0">
-        <stop offset="0%" stop-color="#ff3b60"/><stop offset="100%" stop-color="#ffd23d"/>
-      </linearGradient>
-      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="#ffe07a"/><stop offset="100%" stop-color="#e0a324"/>
-      </linearGradient>
-      <linearGradient id="barGrad" x1="0" y1="0" x2="1" y2="0">
-        <stop offset="0%" stop-color="#9aa0a8"/><stop offset="50%" stop-color="#e4e7ea"/><stop offset="100%" stop-color="#9aa0a8"/>
-      </linearGradient>
-    </defs>
-    ${flameHtml}
-    <polyline points="${cx-bodyHW*0.5},${bodyBot} ${cx-bodyHW*0.5},126 ${cx-bodyHW*0.55},134" fill="none" stroke="${skin}" stroke-width="${stage.armW*0.75}" stroke-linecap="round"/>
-    <polyline points="${cx+bodyHW*0.5},${bodyBot} ${cx+bodyHW*0.5},126 ${cx+bodyHW*0.55},134" fill="none" stroke="${skin}" stroke-width="${stage.armW*0.75}" stroke-linecap="round"/>
-    <rect x="${cx-bodyHW}" y="${bodyTop}" width="${bodyHW*2}" height="${bodyBot-bodyTop}" rx="16" fill="#ff6a3d"/>
-    <polyline points="${shoulderLX},${shoulderY} ${elbowLX},${elbowY} ${plateLX+2},${barY}" fill="none" stroke="${skin}" stroke-width="${stage.armW}" stroke-linecap="round" stroke-linejoin="round"/>
-    <polyline points="${shoulderRX},${shoulderY} ${elbowRX},${elbowY} ${plateRX-2},${barY}" fill="none" stroke="${skin}" stroke-width="${stage.armW}" stroke-linecap="round" stroke-linejoin="round"/>
-    ${extraPlates}
-    <line x1="${barX1}" y1="${barY}" x2="${barX2}" y2="${barY}" stroke="url(#barGrad)" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="${plateLX}" cy="${barY}" r="${stage.plateR}" fill="#ff3b60" stroke="#9c1f36" stroke-width="2"/>
-    <circle cx="${plateRX}" cy="${barY}" r="${stage.plateR}" fill="#ff3b60" stroke="#9c1f36" stroke-width="2"/>
-    <circle cx="${plateLX}" cy="${barY}" r="${stage.plateR*0.28}" fill="#3a3a40"/>
-    <circle cx="${plateRX}" cy="${barY}" r="${stage.plateR*0.28}" fill="#3a3a40"/>
-    <circle cx="${cx}" cy="${headCy}" r="${headR}" fill="${skin}" stroke="${outline}" stroke-width="1.5"/>
-    ${mascotFace(stage.face)}
-    ${sweatHtml}
-    ${crownHtml}
-  </svg>`;
-}
+/* MAX更新演出のキャラクター画像（線画・背景透過PNG。512x279）。
+   以前はここでバーベルキャラクターをSVGで組み立てていたが、画像に差し替えたため
+   MASCOT_STAGES / pickMascotStage / mascotFace / barbellMascotSVG は撤去した。 */
+const HYPE_MASCOT_IMG = "data:image/png;base64,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";
 
 /* ---------- 通年で使える名言（約75種） ---------- */
 const QUOTES = [
@@ -2037,14 +1952,13 @@ function triggerHypeCelebration(titleText){
   triggerConfetti(160);
   setTimeout(()=>triggerConfetti(90), 350);
 
-  // バーベルキャラクター（頂点段階）が大げさに褒め称える演出
+  // キャラクターが大げさに褒め称える演出
   const el = document.getElementById("hypeBurst");
   const line = HYPE_LINES[Math.floor(Math.random()*HYPE_LINES.length)];
-  const peakStage = MASCOT_STAGES[MASCOT_STAGES.length-1];
   el.innerHTML = `
     <div class="hype-bg"></div>
     <div class="hype-rays"></div>
-    <div class="hype-character">${barbellMascotSVG(peakStage)}</div>
+    <div class="hype-character"><img src="${HYPE_MASCOT_IMG}" alt=""></div>
     <div class="hype-title">${titleText}</div>
     <div class="hype-sub">${line}</div>
   `;
