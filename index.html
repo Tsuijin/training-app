@@ -601,6 +601,24 @@
     100%{transform:translate(0,0) rotate(0deg);}
   }
   body.shake{animation:screen-shake .6s cubic-bezier(.36,.07,.19,.97) both;}
+  /* レベル2（軽く）とレベル4（最大）のシェイク */
+  body.shake-soft{animation:screen-shake .38s cubic-bezier(.36,.07,.19,.97) both;}
+  @keyframes screen-shake-mega{
+    0%{transform:translate(0,0) rotate(0deg);}
+    7%{transform:translate(-19px,10px) rotate(-2.4deg);}
+    14%{transform:translate(17px,-12px) rotate(2.4deg);}
+    21%{transform:translate(-16px,13px) rotate(-2deg);}
+    28%{transform:translate(15px,-13px) rotate(2deg);}
+    36%{transform:translate(-13px,10px) rotate(-1.6deg);}
+    44%{transform:translate(12px,-10px) rotate(1.6deg);}
+    52%{transform:translate(-10px,8px) rotate(-1.2deg);}
+    60%{transform:translate(9px,-7px) rotate(1.2deg);}
+    70%{transform:translate(-7px,5px) rotate(-.8deg);}
+    80%{transform:translate(5px,-4px) rotate(.8deg);}
+    90%{transform:translate(-3px,2px);}
+    100%{transform:translate(0,0) rotate(0deg);}
+  }
+  body.shake-mega{animation:screen-shake-mega 1.05s cubic-bezier(.36,.07,.19,.97) both;}
 
   /* 超派手なMAX更新演出 */
   .hype-burst{
@@ -652,6 +670,75 @@
     animation:hype-textpop .45s .42s both; line-height:1.5;
   }
   @keyframes hype-textpop{ from{transform:translateY(16px) scale(.82); opacity:0;} to{transform:translateY(0) scale(1); opacity:1;} }
+
+  /* ---------- 祝福演出の段階差（数字が大きいほど派手） ----------
+     lv1 記録入力 / lv2 週間コンプリート / lv3 MAX更新（上の .hype-* が素の状態）/ lv4 目標達成 */
+
+  /* lv1: 暗幕もキャラクターも出さず、スタンプだけを一瞬 */
+  .hype-stamp{
+    padding:14px 26px; border-radius:16px; border:3px solid var(--ink);
+    background:linear-gradient(135deg, var(--accent), var(--accent-2));
+    color:#fff; font-size:19px; font-weight:900; letter-spacing:.5px; text-align:center;
+    box-shadow:0 12px 30px rgba(0,0,0,.32);
+    animation:hype-stamp-pop 1.5s cubic-bezier(.2,1.7,.4,1) both;
+  }
+  @keyframes hype-stamp-pop{
+    0%{transform:scale(.3) rotate(-12deg); opacity:0;}
+    18%{transform:scale(1.14) rotate(4deg); opacity:1;}
+    32%{transform:scale(1) rotate(0deg);}
+    75%{transform:scale(1) rotate(0deg); opacity:1;}
+    100%{transform:scale(.97) translateY(-14px); opacity:0;}
+  }
+
+  /* lv2: 暗幕＋DAYチップ。キャラクターと放射光は出さない。
+     キャラクターが無い＝背後のスポットライトも無いので、文字が読めるように
+     暗いベタを敷いた上に暖色のグローを重ねる（半透明のグラデだけでは下の画面が透けて読めない）。 */
+  .hype-burst.lv2 .hype-bg{
+    background:
+      radial-gradient(circle at 50% 42%, rgba(255,175,65,0.34), rgba(255,120,30,0) 58%),
+      rgba(12,9,6,0.86);
+    animation-duration:1.9s;
+  }
+  .hype-burst.lv2 .hype-title{font-size:23px;}
+  .hype-week-chips{display:flex; gap:9px; z-index:2; margin-bottom:16px;}
+  .hype-week-chip{
+    padding:9px 13px; border-radius:12px; border:2px solid rgba(255,255,255,.92);
+    font-size:13px; font-weight:900; color:#fff; box-shadow:0 6px 18px rgba(0,0,0,.35);
+    animation:hype-chip-drop .42s cubic-bezier(.2,1.8,.4,1) both;
+  }
+  @keyframes hype-chip-drop{
+    from{transform:translateY(-26px) scale(.5) rotate(-14deg); opacity:0;}
+    to{transform:none; opacity:1;}
+  }
+
+  /* lv4: 金色・長尺・二重の放射光・衝撃波 */
+  .hype-burst.lv4 .hype-bg{
+    background:radial-gradient(circle at 50% 45%, rgba(255,228,130,0.82), rgba(255,150,30,0.52) 38%, rgba(28,13,2,0.92) 80%);
+    animation-duration:3.9s;
+  }
+  .hype-burst.lv4 .hype-rays{
+    background:repeating-conic-gradient(from 0deg, rgba(255,240,165,0.5) 0deg 5deg, transparent 5deg 12deg);
+    animation-duration:1.7s; opacity:.95;
+  }
+  .hype-burst.lv4 .hype-rays.rev{animation-direction:reverse; animation-duration:2.6s; opacity:.45;}
+  .hype-burst.lv4 .hype-character{width:min(88vw, 340px); animation-duration:2.1s;}
+  /* 背景が明るい金色なので、白文字には暗い影を重ねないと読めない */
+  .hype-burst.lv4 .hype-title{
+    font-size:32px;
+    text-shadow:0 2px 9px rgba(58,24,0,0.95), 0 4px 30px rgba(255,205,70,1);
+  }
+  .hype-burst.lv4 .hype-sub{color:#fff6e2; text-shadow:0 2px 9px rgba(58,24,0,0.95);}
+  .hype-ring{
+    position:absolute; left:50%; top:45%; width:40px; height:40px; margin:-20px 0 0 -20px;
+    border-radius:50%; border:5px solid rgba(255,235,150,0.95); z-index:1;
+    animation:hype-shock 1.6s ease-out both;
+  }
+  .hype-ring.d2{animation-delay:.4s;}
+  .hype-ring.d3{animation-delay:.8s;}
+  @keyframes hype-shock{
+    from{transform:scale(0); opacity:.95;}
+    to{transform:scale(26); opacity:0;}
+  }
 </style>
 </head>
 <body ontouchstart="">
@@ -828,7 +915,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 11:18";
+const APP_VERSION = "2026-07-30 12:17";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -1900,7 +1987,8 @@ function commitOnboarding(){
 }
 
 /* 現在の1RMを更新する共通処理。手動編集シート・Max測定項目の実績入力の両方から呼ばれる。
-   PR（自己ベスト更新）の場合のみ紙吹雪・記録バーストを発火する。 */
+   PR（自己ベスト更新）の場合のみ祝福演出を発火する。
+   目標重量に初めて到達したときはレベル4（最大）、それ以外のPRはレベル3。 */
 function applyNewMax(exId, rawValue){
   const ex = DATA.exercises.find(e=>e.id===exId);
   if(!ex) return {updated:false};
@@ -1915,30 +2003,47 @@ function applyNewMax(exId, rawValue){
   DATA.maxHistory[exId] = DATA.maxHistory[exId]||[];
   DATA.maxHistory[exId].push({date:todayKey(), weight:rounded});
 
-  let isPR = false;
+  let isPR = false, goalReached = false;
   if(rounded>prev){
     isPR = true;
-    const crossed = MILESTONES.filter(m => prevRatio < m.p && newRatio >= m.p).pop();
-    const titleText = crossed ? `${crossed.emoji} ${crossed.label} 到達！！` : `🔥 NEW MAX 更新！！`;
-    triggerHypeCelebration(titleText);
-    showToast(crossed ? `🔥 新記録！ ${crossed.label}の壁を突破しました` : `🔥 MAX更新！ ${fmt1(round25(goal-rounded))}kg で目標達成`);
+    goalReached = prevRatio < 100 && newRatio >= 100;
+    if(goalReached){
+      // レベル4：目標重量の達成。MILESTONES の 100% はここで扱うので下の crossed には来ない
+      celebrate(4, `🏆 目標達成！！ ${fmt1(rounded)}kg`, `${ex.name} ${fmt1(goal)}kg の目標に到達！！ ${pickLine(GOAL_LINES)}`);
+      showToast(`🏆 目標達成！ ${ex.name} ${fmt1(rounded)}kg`);
+    }else{
+      const crossed = MILESTONES.filter(m => prevRatio < m.p && newRatio >= m.p).pop();
+      celebrate(3, crossed ? `${crossed.emoji} ${crossed.label} 到達！！` : `🔥 NEW MAX 更新！！`, pickLine(HYPE_LINES));
+      /* 既に目標を超えている状態からの更新では「あと −Xkg」になってしまうので分ける */
+      showToast(crossed ? `🔥 新記録！ ${crossed.label}の壁を突破しました`
+        : rounded >= goal ? `🔥 MAX更新！ 目標を ${fmt1(rounded-goal)}kg 超えました`
+        : `🔥 MAX更新！ あと ${fmt1(round25(goal-rounded))}kg で目標達成`);
+    }
   }
-  return {updated:true, isPR, rounded};
+  return {updated:true, isPR, goalReached, rounded};
 }
 
 /* ---------- 演出：紙吹雪 & 画面シェイク & マッチョキャラ大絶賛演出 ---------- */
-function triggerConfetti(count=60){
+/* emojis を渡すと、一部の紙片を絵文字に差し替える（派手なレベルで使う） */
+function triggerConfetti(count=60, emojis=null){
   const layer = document.getElementById("confettiLayer");
   const colors = ["#ff6a3d","#ff3b60","#3d9bff","#33d68a","#ffd23d"];
   for(let i=0;i<count;i++){
     const p = document.createElement("div");
     p.className = "confetti-piece";
     p.style.left = (Math.random()*100)+"%";
-    p.style.background = colors[Math.floor(Math.random()*colors.length)];
-    p.style.borderRadius = Math.random()>0.5 ? "50%" : "2px";
-    const size = 6 + Math.random()*8;
-    p.style.width = size+"px";
-    p.style.height = (size*1.7)+"px";
+    if(emojis && emojis.length && Math.random()<0.3){
+      p.classList.add("emoji");
+      p.textContent = emojis[Math.floor(Math.random()*emojis.length)];
+      p.style.width = "auto";
+      p.style.height = "auto";
+    }else{
+      p.style.background = colors[Math.floor(Math.random()*colors.length)];
+      p.style.borderRadius = Math.random()>0.5 ? "50%" : "2px";
+      const size = 6 + Math.random()*8;
+      p.style.width = size+"px";
+      p.style.height = (size*1.7)+"px";
+    }
     const dur = 1.5 + Math.random()*1.3;
     const delay = Math.random()*0.4;
     p.style.animationDuration = dur+"s";
@@ -1963,30 +2068,78 @@ const HYPE_LINES = [
   "誰も見たことのない高みに到達した！！",
   "今この瞬間、お前が主人公だ！！",
 ];
-function triggerHypeCelebration(titleText){
-  // 画面全体シェイク
-  document.body.classList.remove("shake");
-  void document.body.offsetWidth; // reflow でアニメーションを再トリガー
-  document.body.classList.add("shake");
-  setTimeout(()=>document.body.classList.remove("shake"), 650);
+/* 目標達成（最上位）専用のセリフ。MAX更新より一段上の言い回しにする。 */
+const GOAL_LINES = [
+  "掲げた目標を、ついに叩き潰した…！！",
+  "宣言した数字に、力でねじ伏せて追いついた！！",
+  "この日のために積み上げてきた全部が実った！！",
+  "目標は達成された。次はどこまで行く気だ！？",
+  "ここまで来られる人間は、ほとんどいない！！",
+  "約束を守った男の背中がここにある！！",
+];
+function pickLine(list){ return list[Math.floor(Math.random()*list.length)]; }
 
-  // 紙吹雪を大量投下
-  triggerConfetti(160);
-  setTimeout(()=>triggerConfetti(90), 350);
+/* ---------- 祝福演出（4段階・数字が大きいほど派手） ----------
+   1: その日の記録を入力した   … スタンプ＋少量の紙吹雪。暗幕もシェイクも出さない
+   2: 1週間でDAY1〜3を達成     … ＋薄い暗幕・DAYチップ・タイトル・軽いシェイク
+   3: MAXを更新した            … ＋キャラクター・放射光・フラッシュ・シェイク
+   4: 目標重量を達成した       … 3を金色・長尺・二重放射光・衝撃波・絵文字紙吹雪にした最大演出
 
-  // キャラクターが大げさに褒め称える演出
+   演出の器（#hypeBurst）は1つしかないので、条件が複数同時に成立したときは
+   呼び出し側で「最も高いレベルだけ」を出すこと。重ねると前の演出が消える。 */
+const CELEBRATE_DURATION = {1:1500, 2:2100, 3:2600, 4:4100};
+function celebrate(level, title, sub){
   const el = document.getElementById("hypeBurst");
-  const line = HYPE_LINES[Math.floor(Math.random()*HYPE_LINES.length)];
-  el.innerHTML = `
-    <div class="hype-bg"></div>
-    <div class="hype-rays"></div>
-    <div class="hype-character"><img src="${HYPE_MASCOT_IMG}" alt=""></div>
-    <div class="hype-title">${titleText}</div>
-    <div class="hype-sub">${line}</div>
-  `;
+  clearTimeout(celebrate._t);
+  el.className = "hype-burst lv"+level;
+
+  // 紙吹雪：レベルが上がるほど量と波の数を増やす
+  if(level<=1){
+    triggerConfetti(30);
+  }else if(level===2){
+    triggerConfetti(95, ["🔥"]);
+  }else if(level===3){
+    triggerConfetti(160);
+    setTimeout(()=>triggerConfetti(90), 350);
+  }else{
+    triggerConfetti(220, ["🏆","🎉","💪"]);
+    setTimeout(()=>triggerConfetti(150, ["🏆","⭐️"]), 320);
+    setTimeout(()=>triggerConfetti(130, ["🎉","💪"]), 700);
+    setTimeout(()=>triggerConfetti(110, ["🏆","⭐️"]), 1150);
+  }
+
+  // 画面シェイク：レベル1では出さない
+  if(level>=2){
+    const cls = level>=4 ? "shake-mega" : level===3 ? "shake" : "shake-soft";
+    document.body.classList.remove("shake","shake-soft","shake-mega");
+    void document.body.offsetWidth; // reflow でアニメーションを再トリガー
+    document.body.classList.add(cls);
+    setTimeout(()=>document.body.classList.remove(cls), level>=4?1100:level===3?650:420);
+  }
+
+  if(level<=1){
+    el.innerHTML = `<div class="hype-stamp">${escapeHtml(title)}</div>`;
+  }else if(level===2){
+    el.innerHTML = `
+      <div class="hype-bg"></div>
+      <div class="hype-week-chips">
+        ${["D1","D2","D3"].map((d,i)=>`<div class="hype-week-chip" style="background:${DAY_COLORS[d]}; animation-delay:${(0.1+i*0.14).toFixed(2)}s;">${dayDisplay(d)}</div>`).join("")}
+      </div>
+      <div class="hype-title">${escapeHtml(title)}</div>
+      <div class="hype-sub">${escapeHtml(sub||"")}</div>
+    `;
+  }else{
+    el.innerHTML = `
+      <div class="hype-bg"></div>
+      <div class="hype-rays"></div>
+      ${level>=4 ? `<div class="hype-rays rev"></div><div class="hype-ring"></div><div class="hype-ring d2"></div><div class="hype-ring d3"></div>` : ""}
+      <div class="hype-character"><img src="${HYPE_MASCOT_IMG}" alt=""></div>
+      <div class="hype-title">${escapeHtml(title)}</div>
+      <div class="hype-sub">${escapeHtml(sub||"")}</div>
+    `;
+  }
   el.classList.add("show");
-  clearTimeout(triggerHypeCelebration._t);
-  triggerHypeCelebration._t = setTimeout(()=>el.classList.remove("show"), 2600);
+  celebrate._t = setTimeout(()=>el.classList.remove("show"), CELEBRATE_DURATION[level]||2600);
 }
 
 /* =========================================================================
@@ -2334,6 +2487,17 @@ function saveWorkout(){
   const tmpl = (DATA.templates[ex.id]||{})[inputState.day];
   const isEditingPast = !!inputState.editingDateKey && inputState.editingDateKey!==todayKey();
   const key = inputState.editingDateKey || todayKey();
+
+  /* 祝福演出の判定に使う「保存前の状態」。書き込んだ後では取れないので先に取る。
+     ・wasPerformed: この記録が既に実施済みだったか（既存記録の手直しでは演出を出さない）
+     ・comboBefore : その週が既にDAY1〜3コンプリート済みだったか（新規達成のときだけ演出） */
+  const weekStartOfKey = weekStart(new Date(key));
+  const comboBefore = isFullComboWeek(ex.id, weekStartOfKey);
+  const prevRec = ((DATA.records[ex.id]||{})[key]||[]).find(r=>r.day===inputState.day);
+  const prevLogs = prevRec ? (prevRec.logs||[]) : [];
+  const wasPerformed = completedLogs(prevRec||{}).length>0;
+  const wasAllDone = prevLogs.length>0 && prevLogs.every(l=>l.completed);
+
   DATA.records[ex.id] = DATA.records[ex.id]||{};
   DATA.records[ex.id][key] = DATA.records[ex.id][key]||[];
   const newRec = {
@@ -2349,6 +2513,9 @@ function saveWorkout(){
   const dayList = DATA.records[ex.id][key];
   const existingIdx = dayList.findIndex(r=>r.day===inputState.day);
   if(existingIdx>=0) dayList[existingIdx] = newRec; else dayList.push(newRec);
+
+  // この保存でその週がDAY1〜3コンプリートになったか
+  const comboAchieved = !comboBefore && isFullComboWeek(ex.id, weekStartOfKey);
 
   // 過去日の編集・追加では「直近やったDAY」や現在の1RMを遡って書き換えない
   if(!isEditingPast){
@@ -2377,23 +2544,36 @@ function saveWorkout(){
   /* チェックが1つも入っていない＝その種目はやっていないので、未実施として扱われることを伝える
      （記録自体は残るので、チェックを入れ直せば元に戻る） */
   const noneDone = !inputState.entries.some(e=>e.completed);
+  const allDone = !noneDone && inputState.entries.every(e=>e.completed);
+  /* この保存で「未実施 → 実施済み」または「→ 全メニュー達成」になったときだけ祝う。
+     既に同じ状態だった記録の手直しでは毎回演出が出て煩わしいので出さない。 */
+  const newlyPerformed = (!wasPerformed && !noneDone) || (allDone && !wasAllDone);
+
+  /* 演出は上から順に「一番派手なものだけ」を出す（#hypeBurst は1つしかない）。
+     レベル3/4（MAX更新・目標達成）は applyNewMax 側で既に発火しているので、
+     ここでは重ねずにトーストで補足するだけにする。 */
   if(noneDone){
     showToast("チェックが無いため未実施として保存しました");
+  }else if(maxResult.isPR){
+    // レベル3/4 発火済み。トーストも applyNewMax 側で出している
+    if(comboAchieved) showToast(`🔥 ${dayDisplay("D1")}〜${dayDisplay("D3")} 完全制覇＆MAX更新！`);
+  }else if(comboAchieved){
+    /* 過去の週を埋めて達成した場合、今週から数える comboStreak は 0 を返しうる。
+       0 のときは連続数を出さない。 */
+    const streak = comboStreak(ex.id);
+    celebrate(2, "🔥 週間コンプリート！！",
+      `${ex.name} の ${dayDisplay("D1")}〜${dayDisplay("D3")} を1週間でやり切った！${streak>0?` ${streak}週連続！`:""}`);
+  }else if(maxResult.updated){
+    showToast(`📌 現在の1RMを ${fmt1(maxResult.rounded)}kg に更新しました`);
+  }else if(newlyPerformed){
+    celebrate(1, allDone ? "💪 全メニュー達成！"
+      : key!==todayKey() ? `✅ ${formatMD(key)} を記録！` : "✅ 記録しました！");
   }else if(wasExisting){
     showToast("記録を更新しました");
   }else if(wasDated){
     showToast("この日の記録を保存しました");
-  }else if(maxResult.updated){
-    if(!maxResult.isPR) showToast(`📌 現在の1RMを ${fmt1(maxResult.rounded)}kg に更新しました`);
-    // PRの場合は applyNewMax 側でトースト・演出済み
   }else{
-    const allDone = inputState.entries.length>0 && inputState.entries.every(e=>e.completed);
-    if(allDone){
-      triggerConfetti(60);
-      showToast("💪 全メニュー達成！ナイスワーク！");
-    }else{
-      showToast("トレーニングを保存しました");
-    }
+    showToast("トレーニングを保存しました");
   }
   renderAll();
 }
