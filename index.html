@@ -554,6 +554,20 @@
     display:flex; gap:8px; align-items:flex-start; font-size:11px; color:var(--text-faint);
     background:var(--card); border:2px solid var(--ink); border-radius:14px; padding:12px 14px; margin-top:16px; line-height:1.6;
   }
+  .setting-toggle-row{margin-top:10px;}
+  .setting-toggle{
+    width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:var(--card-2); border:2px solid var(--ink); border-radius:14px;
+    padding:13px 15px; font-size:13.5px; font-weight:800; color:var(--text);
+    box-shadow:2px 2px 0 var(--ink);
+  }
+  .setting-toggle:active{transform:translate(2px,2px); box-shadow:0 0 0 var(--ink);}
+  .setting-toggle .state{
+    flex:0 0 auto; font-size:11.5px; font-weight:900; letter-spacing:1px;
+    padding:5px 12px; border-radius:999px; border:2px solid var(--ink);
+    background:var(--card); color:var(--text-faint);
+  }
+  .setting-toggle .state.on{background:var(--accent); color:#fff;}
 
   /* Growth chart x-axis */
   .chart-axis{display:flex; justify-content:space-between; margin-top:6px; font-size:9px; font-weight:700; color:var(--text-faint);}
@@ -563,7 +577,7 @@
   .quote-label-wrap{text-align:center; margin-bottom:10px; position:relative; z-index:1;}
   .quote-row{display:flex; align-items:center; gap:12px; position:relative; z-index:1;}
   .quote-avatar{
-    flex:0 0 auto; width:100px; height:100px; object-fit:cover; object-position:center 15%;
+    flex:0 0 auto; width:88px; height:88px; object-fit:cover; object-position:center 15%;
     display:block;
   }
   .quote-content{
@@ -574,7 +588,27 @@
     display:inline-block; background:var(--yellow); padding:4px 11px; border-radius:999px;
     border:1.5px solid var(--ink); transform:skewX(-6deg);
   }
-  .quote-text{font-size:19px; font-weight:900; line-height:1.5; color:#f5f1e8;}
+  /* AIコメントは名言より長い。そのままだとカードが際限なく縦に伸びるので、
+     文字数に応じて3段階でアバターと字を詰める。
+     len-short=従来の名言（100px・19px）／既定=中くらい／len-long=長文（72px・14.5px） */
+  .quote-text{font-size:15.5px; font-weight:800; line-height:1.62; color:#f5f1e8;}
+  .quote-card.len-short .quote-avatar{width:100px; height:100px;}
+  .quote-card.len-short .quote-text{font-size:19px; font-weight:900; line-height:1.5;}
+  .quote-card.len-long .quote-avatar{width:72px; height:72px;}
+  .quote-card.len-long .quote-text{font-size:14.5px; line-height:1.55;}
+  .quote-text.loading{opacity:0.4;}
+  /* コメントを作り直すボタン。ラベルが中央寄せなので右端に絶対配置する */
+  .quote-refresh{
+    position:absolute; right:0; top:50%; transform:translateY(-50%);
+    width:30px; height:30px; border-radius:50%; padding:0;
+    background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.28);
+    color:#f5f1e8; font-size:15px; font-weight:900; line-height:1;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .quote-refresh:active{transform:translateY(-50%) scale(0.9);}
+  .quote-refresh:disabled{opacity:0.5;}
+  .quote-refresh.spinning{animation:quote-spin .9s linear infinite;}
+  @keyframes quote-spin{ from{transform:translateY(-50%) rotate(0deg);} to{transform:translateY(-50%) rotate(360deg);} }
 
 
   /* Confetti */
@@ -790,8 +824,14 @@
     <button class="add-link" onclick="addExercise()">＋ 種目を追加</button>
 
     <div class="privacy-note">
-      🔒 記録・1RM・種目設定はすべてこの iPhone 内（ブラウザのローカルキャッシュ）にのみ保存されます。サーバーには送信されません。ブラウザのキャッシュ／サイトデータを消去すると失われるのでご注意ください。
+      🔒 記録・1RM・種目設定はすべてこの iPhone 内（ブラウザのローカルキャッシュ）に保存されます。ブラウザのキャッシュ／サイトデータを消去すると失われるのでご注意ください。
     </div>
+
+    <div class="eyebrow" style="margin-top:22px;">TODAY'S WORDS（AIコメント）</div>
+    <div class="privacy-note" style="margin-top:10px;">
+      💬 コメントを作るときだけ、直近3回ぶんのトレーニング内容（種目名・重量・回数・メモ・1RM・目標・実施頻度）を自前のサーバー経由で Google の Gemini に送っています。氏名やメールアドレスなどは送っていません。オフにすると送信は行わず、内蔵の名言だけを表示します。
+    </div>
+    <div class="setting-toggle-row" id="coachToggleRow"></div>
 
     <div class="eyebrow" style="margin-top:22px;">データのバックアップ</div>
     <button class="secondary-btn" style="margin-top:10px;" onclick="exportData()">⬇️ 全データをエクスポート</button>
@@ -915,7 +955,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-07-30 12:17";
+const APP_VERSION = "2026-08-02 22:06";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -1085,6 +1125,28 @@ const SEASONAL_QUOTES = [
   {months:[12], text:"年末の忙しさに追われても、バーだけは裏切るな。"},
   {months:[12], text:"来年の自分のために、今年最後の1repを積んでおけ。"},
 ];
+
+/* =========================================================================
+   AIコーチ（TODAY'S WORDS）の設定と状態
+
+   Cloudflare Worker（training-app-worker/）経由で Gemini に記録を渡し、
+   励まし＋改善点のコメントを受け取る。Gemini の API キーは Worker 側の
+   secret に置くので、この HTML には載せない。
+
+   ・AI_COACH_ENDPOINT が空文字なら機能はオフ。従来の名言をそのまま出す
+     （Worker を建てる前でも、他の環境に持っていっても壊れない）
+   ・通信に失敗したときも名言にフォールバックする。カードが空になることはない
+   ・呼ぶタイミングは3つだけ。その日の初回起動 / 今日の記録を新規保存したとき /
+     ↻ ボタンを押したとき。記録の手直しでは呼ばない（第 10 節・API 節約）
+   ・宣言は invariant 2-1 に従い `let DATA = load();` より前に置くこと
+   ========================================================================= */
+const AI_COACH_ENDPOINT = "";   // 例: "https://training-app-coach.xxxx.workers.dev"
+const AI_COACH_TOKEN    = "";   // Worker の APP_TOKEN と同じ文字列
+const COACH_KEY = "maxlog:coach:v1";
+const COACH_TIMEOUT_MS = 20000;
+
+/* 表示中のコメント。renderMain() がカードごと作り直すので、状態はDOMではなくここに持つ。 */
+let coachState = { text:"", mode:"", date:"", source:"quote", loading:false };
 
 function pickQuoteForToday(){
   const now = new Date();
@@ -1618,12 +1680,15 @@ function renderMain(){
   if(ctaFloat) ctaFloat.style.display = "";
 
   main.innerHTML = `
-    <section class="card quote-card">
-      <div class="quote-label-wrap"><span class="quote-label">TODAY'S WORDS</span></div>
+    <section class="card quote-card" id="coachCard">
+      <div class="quote-label-wrap">
+        <span class="quote-label">TODAY'S WORDS</span>
+        <button type="button" class="quote-refresh" id="coachRefresh" onclick="refreshCoach()" aria-label="コメントを作り直す">↻</button>
+      </div>
       <div class="quote-row">
         <img class="quote-avatar" src="${QUOTE_AVATAR_IMG}" alt="">
         <div class="quote-content">
-          <div class="quote-text">${escapeHtml(pickQuoteForToday())}</div>
+          <div class="quote-text" id="coachText"></div>
         </div>
       </div>
     </section>
@@ -1643,6 +1708,165 @@ function renderMain(){
     </section>
   `;
   renderCalendarBody();
+  renderCoachCard();
+}
+
+/* =========================================================================
+   AIコーチ（TODAY'S WORDS）
+   ========================================================================= */
+
+/* カード本文の差し替え。renderMain() がカードごと作り直すので、そのたびに呼ぶ。 */
+function renderCoachCard(){
+  const el = document.getElementById("coachText");
+  if(!el) return;
+  /* コメントが無い／取得に失敗している間は、従来の名言で埋める。カードは常に埋まる。 */
+  const text = coachState.text || pickQuoteForToday();
+  el.textContent = text;
+  el.classList.toggle("loading", !!coachState.loading);
+  const card = document.getElementById("coachCard");
+  if(card){
+    card.classList.toggle("len-short", text.length <= 34);   // 内蔵の名言は従来の大きい字で
+    card.classList.toggle("len-long",  text.length >= 85);   // 長いAIコメントは詰める
+  }
+  const btn = document.getElementById("coachRefresh");
+  if(btn){
+    btn.style.display = coachEnabled() ? "flex" : "none";
+    btn.disabled = !!coachState.loading;
+    btn.classList.toggle("spinning", !!coachState.loading);
+  }
+}
+function coachEnabled(){
+  return !!AI_COACH_ENDPOINT && DATA.aiCoach !== false;
+}
+function loadCoachCache(){
+  try{
+    const c = JSON.parse(readStored(COACH_KEY) || "null");
+    return (c && typeof c.text === "string" && c.text) ? c : null;
+  }catch(e){ return null; }
+}
+function saveCoachCache(){
+  writeStored(COACH_KEY, JSON.stringify({
+    text: coachState.text, mode: coachState.mode, date: coachState.date, source: coachState.source,
+  }));
+}
+
+/* 起動時に前回のコメントを戻す（描画より前に呼ぶ。呼ばないとカードが一瞬名言になる）。
+   機能をオフにした／送信先を外した場合は戻さない。古いコメントが残り続けないようにする。 */
+function restoreCoach(){
+  if(!coachEnabled()) return;
+  const cached = loadCoachCache();
+  if(cached) coachState = Object.assign({loading:false}, cached);
+}
+/* 起動時の生成。今日ぶんが既にあれば何もしない＝1日1回に収まる。 */
+function startCoach(){
+  if(!coachEnabled()) return;
+  if(coachState.date === todayKey() && coachState.text) return;
+  requestCoach("daily");
+}
+/* ↻ ボタン。今日すでに実施済みの記録があれば分析、無ければ今日のひと押しを作る。 */
+function refreshCoach(){
+  if(!AI_COACH_ENDPOINT){ showToast("AIコメントは未設定です"); return; }
+  if(DATA.aiCoach === false){ showToast("設定でAIコメントがオフになっています"); return; }
+  const trainedToday = DATA.exercises.some(ex=>performedRecs(ex.id, todayKey()).length>0);
+  requestCoach(trainedToday ? "postWorkout" : "daily", {manual:true});
+}
+
+/* Worker にコメントを取りに行く。失敗しても表示は従来のまま保つ。 */
+async function requestCoach(mode, opts){
+  opts = opts || {};
+  if(!coachEnabled() || coachState.loading) return;
+  coachState.loading = true;
+  renderCoachCard();
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), COACH_TIMEOUT_MS);
+  try{
+    const res = await fetch(AI_COACH_ENDPOINT, {
+      method:"POST",
+      headers: Object.assign({"Content-Type":"application/json"},
+                             AI_COACH_TOKEN ? {"X-App-Token": AI_COACH_TOKEN} : {}),
+      body: JSON.stringify({mode, stats: buildCoachStats(mode, opts.focus)}),
+      signal: ctrl.signal,
+    });
+    if(!res.ok) throw new Error("http "+res.status);
+    const data = await res.json();
+    const text = String((data && data.text) || "").trim();
+    if(!text) throw new Error("empty");
+    coachState = { text, mode, date: todayKey(), source:"ai", loading:false };
+    saveCoachCache();
+  }catch(e){
+    coachState.loading = false;
+    /* 自動生成の失敗は黙って見送る（圏外のたびに毎朝トーストが出るとうるさい）。
+       手動で押したときだけ知らせる。無反応だと壊れて見えるため。 */
+    if(opts.manual) showToast("コメントを取得できませんでした");
+  }finally{
+    clearTimeout(timer);
+    renderCoachCard();
+  }
+}
+
+/* Gemini に渡す要約。生データを丸ごとではなく、助言に必要な範囲へ絞る。
+   ここを変えたら、設定画面のプライバシー案内の文面も合わせること。 */
+function buildCoachStats(mode, focus){
+  const today = todayKey();
+  const sessionOf = (dateKey, rec)=>({
+    日付: dateKey,
+    DAY: dayDisplay(rec.day),
+    メニュー: rec.dayLabel || "",
+    種目: completedLogs(rec).map(l=>{
+      const item = {
+        名前: l.name,
+        予定: l.plannedText || "",
+        セット: (l.sets||[]).map(s=>({kg: s.weight==="" ? null : Number(s.weight), reps: Number(s.reps)||0})),
+      };
+      if(l.note) item.メモ = String(l.note).slice(0,80);
+      return item;
+    }),
+  });
+
+  const exercises = DATA.exercises.map(ex=>{
+    const recs = DATA.records[ex.id] || {};
+    const dates = Object.keys(recs).sort().reverse();
+    const recent = [];
+    for(const d of dates){
+      for(const rec of performedRecs(ex.id, d)){
+        recent.push(sessionOf(d, rec));
+        if(recent.length>=3) break;      // ペイロードを抑える。3セッションあれば傾向は出る
+      }
+      if(recent.length>=3) break;
+    }
+    const weekly = [];
+    for(let w=0; w<4; w++){
+      const ws = weekStart(new Date());
+      ws.setDate(ws.getDate() - 7*w);
+      weekly.push({週: todayKey(ws)+"の週", 実施日数: daysDoneInWeek(ex.id, ws).size});
+    }
+    return {
+      種目名: ex.name,
+      現在の1RM: DATA.currentMax[ex.id] || 0,
+      目標: ex.goal || null,
+      開始時: ex.start || null,
+      MAX推移: (DATA.maxHistory[ex.id]||[]).slice(-6),
+      次にやるDAY: dayDisplay(nextDay(ex.id)),
+      週コンボ連続: comboStreak(ex.id),
+      直近4週の頻度: weekly,
+      直近のセッション: recent,
+    };
+  });
+
+  const stats = { 今日: today, 曜日: DOW[new Date().getDay()], 種目: exercises };
+
+  if(mode === "postWorkout"){
+    const saved = [];
+    DATA.exercises.forEach(ex=>{
+      if(focus && focus.exId !== ex.id) return;
+      performedRecs(ex.id, today).forEach(rec=>{
+        if(focus && focus.day && focus.day !== rec.day) return;
+        saved.push(Object.assign({種目名: ex.name}, sessionOf(today, rec)));
+      });
+    });
+    if(saved.length) stats.justSaved = saved;
+  }
+  return stats;
 }
 
 /* 現在のMAXカードの各列タップ時、その種目の立ち位置とGROWTH LOGをポップアップ表示（種目はポップアップ内でも切替可） */
@@ -2576,6 +2800,12 @@ function saveWorkout(){
     showToast("トレーニングを保存しました");
   }
   renderAll();
+
+  /* AIコメント: 今日の記録が新しく実施済みになったときだけ作り直す。
+     既存記録の手直しや過去日の埋めでは投げない（毎回のAPI呼び出しを避けるため）。 */
+  if(newlyPerformed && key === todayKey()){
+    requestCoach("postWorkout", {focus:{exId: ex.id, day: inputState.day}});
+  }
 }
 
 /* =========================================================================
@@ -2596,10 +2826,43 @@ function renderSettings(){
       </div>
     </div>
   `).join("") || `<div class="empty-state">種目がありません</div>`;
+  renderCoachToggle();
   renderSnapshotList();
   const ver = document.getElementById("appVersionLabel");
   if(ver) ver.textContent = `バージョン ${APP_VERSION}`;
   renderDiagnostics();
+}
+
+/* AIコメントのオン／オフ。データが端末の外に出る機能なので、切れるようにしておく。 */
+function renderCoachToggle(){
+  const box = document.getElementById("coachToggleRow");
+  if(!box) return;
+  if(!AI_COACH_ENDPOINT){
+    box.innerHTML = `<div class="privacy-note" style="margin-top:0;">⚙️ 送信先が未設定のため、いまは内蔵の名言だけを表示しています。</div>`;
+    return;
+  }
+  const on = DATA.aiCoach !== false;
+  box.innerHTML = `
+    <button type="button" class="setting-toggle" onclick="toggleCoach()">
+      <span>AIコメントを使う</span>
+      <span class="state ${on?"on":""}">${on?"オン":"オフ"}</span>
+    </button>`;
+}
+function toggleCoach(){
+  DATA.aiCoach = (DATA.aiCoach === false);
+  save();
+  renderCoachToggle();
+  if(DATA.aiCoach === false){
+    /* オフにしたら、生成済みのコメントも消して名言に戻す */
+    coachState = { text:"", mode:"", date:"", source:"quote", loading:false };
+    saveCoachCache();
+    showToast("AIコメントをオフにしました");
+    renderAll();
+  }else{
+    showToast("AIコメントをオンにしました");
+    renderAll();
+    startCoach();
+  }
 }
 
 /* env(safe-area-inset-*) の実測値を得る。CSS変数ではなく env() を直接測るので、
@@ -3166,8 +3429,10 @@ function setupSwipeToClose(sheetId){
 setupSwipeToClose("inputSheet");
 setupSwipeToClose("statsSheet");
 
+restoreCoach();   // 前回のコメントを戻す（renderAll より前。でないとカードが一瞬名言に戻る）
 renderAll();
 checkOnboarding();
+startCoach();     // 今日ぶんがまだ無ければ生成する
 
 /* 起動時に復元ポイントが1つも無ければ、今の状態を基準として1つ作っておく。 */
 if(!loadSnapshots().length && recordCount(DATA) > 0){
