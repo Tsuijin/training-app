@@ -955,7 +955,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-08-02 22:06";
+const APP_VERSION = "2026-08-02 23:19";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -1140,8 +1140,10 @@ const SEASONAL_QUOTES = [
      ↻ ボタンを押したとき。記録の手直しでは呼ばない（第 10 節・API 節約）
    ・宣言は invariant 2-1 に従い `let DATA = load();` より前に置くこと
    ========================================================================= */
-const AI_COACH_ENDPOINT = "";   // 例: "https://training-app-coach.xxxx.workers.dev"
-const AI_COACH_TOKEN    = "";   // Worker の APP_TOKEN と同じ文字列
+const AI_COACH_ENDPOINT = "https://training-app-coach.cafe-hitsuji.workers.dev";
+/* Worker の APP_TOKEN と同じ文字列。公開HTMLに載るので秘密にはならない
+   （URL を偶然知られただけの相手を弾くだけ）。財布を守るのは Worker 側の日次上限。 */
+const AI_COACH_TOKEN    = "a0a1f305dc896f435ae08cb8168f1386";
 const COACH_KEY = "maxlog:coach:v1";
 const COACH_TIMEOUT_MS = 20000;
 
