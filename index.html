@@ -955,7 +955,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-08-02 23:19";
+const APP_VERSION = "2026-08-04 23:49";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -2634,7 +2634,7 @@ function renderInputSheet(){
 
       <div class="plan-item-detail ${e.completed?"open":""}">
         ${e.hint? `<div class="history-chip">💡 ${escapeHtml(e.hint)}</div>`:""}
-        ${e.isMaxTest? `<div class="history-chip">📌 ここに入力した重量が、そのまま現在の1RMとして更新されます</div>`:""}
+        ${e.isMaxTest? `<div class="history-chip">📌 入力したセットのうち<b>最も重い重量</b>が、現在の1RMとして更新されます（1セット目がアップでもOK）</div>`:""}
         ${e.hist.length
           ? `<div class="history-chip prev">🕐 前回: <b>${e.hist[0].weight}kg</b>（${formatMD(e.hist[0].date)}）${e.hist.length>1?` ・その前: ${e.hist.slice(1).map(h=>h.weight+"kg").join(" / ")}`:""}</div>`
           : `<div class="history-chip">🆕 この種目はまだ記録がありません</div>`}
@@ -2753,10 +2753,14 @@ function saveWorkout(){
   let maxResult = {updated:false};
   if(!isEditingPast){
     inputState.entries.forEach(e=>{
-      if(e.isMaxTest && e.sets[0] && e.sets[0].weight){
-        const r = applyNewMax(ex.id, e.sets[0].weight);
-        if(r.updated) maxResult = r;
-      }
+      if(!e.isMaxTest) return;
+      /* 1セット目はウォーミングアップに使うので、そこだけを見てはいけない。
+         入力された全セットのうち最も重い重量をその日の1RMとして採用する。
+         重量が空・0・数値でないセットは「やっていない」とみなして無視する。 */
+      const weights = (e.sets||[]).map(s=>parseFloat(s.weight)).filter(w=>!isNaN(w) && w>0);
+      if(!weights.length) return;
+      const r = applyNewMax(ex.id, Math.max(...weights));
+      if(r.updated) maxResult = r;
     });
   }
 
