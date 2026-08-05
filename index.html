@@ -955,7 +955,7 @@
    ========================================================================= */
 /* 公開時に deploy.sh が "dev" をデプロイ日時へ置換する。設定画面の一番下に表示され、
    iPhone 側が古いキャッシュを掴んでいないか（＝修正が届いているか）を判別するために使う。 */
-const APP_VERSION = "2026-08-04 23:49";
+const APP_VERSION = "2026-08-05 22:01";
 
 const STORAGE_KEY = "maxlog:data:v1";
 /* 保存のたびに同じ内容を複製しておく保険。本体が壊れた／消えた場合に load() が自動で拾う。 */
@@ -2226,8 +2226,14 @@ function applyNewMax(exId, rawValue){
   const prevRatio = goal ? (prev/goal)*100 : 0;
   const newRatio = goal ? (rounded/goal)*100 : 0;
   DATA.currentMax[exId] = rounded;
-  DATA.maxHistory[exId] = DATA.maxHistory[exId]||[];
-  DATA.maxHistory[exId].push({date:todayKey(), weight:rounded});
+  /* 同じ日に何度も測り直した／記録を直した場合は、その日の点を差し替える。
+     追記にすると GROWTH LOG のグラフに同じ日の点が積み上がってしまう。
+     currentMax が常に最後の値になるのと揃えて、履歴も最後の値を残す。 */
+  const hist = DATA.maxHistory[exId] = DATA.maxHistory[exId]||[];
+  const today = todayKey();
+  const sameDay = hist.findIndex(h=>h.date===today);
+  if(sameDay>=0) hist[sameDay] = {date:today, weight:rounded};
+  else hist.push({date:today, weight:rounded});
 
   let isPR = false, goalReached = false;
   if(rounded>prev){
@@ -2385,14 +2391,17 @@ function openDayDetail(dateKey, sourceCell){
   /* 実施した（チェックの入った）項目だけを見せる。チェックの無い項目はやっていないので出さない。
      全部チェックが外れている記録は、その日の実績としては存在しない扱いにする。 */
   const exBlocks = DATA.exercises.map(ex=>{
-    const recs = performedRecs(ex.id, dateKey);
+    /* 「✎ 編集」には DAY ではなく記録配列の位置を渡す。同じDAYの記録が複数ある日でも
+       取り違えずにその1件だけを開ける。そのため生の配列の添字を保ったまま絞り込む。 */
+    const all = (DATA.records[ex.id]||{})[dateKey]||[];
+    const recs = all.map((rec,idx)=>({rec, idx})).filter(({rec})=>completedLogs(rec).length>0);
     if(!recs.length) return "";
     return `
       <div class="detail-ex-label">${escapeHtml(ex.abbr||defaultAbbr(ex.name))} ${escapeHtml(ex.name)}</div>
-      ${recs.map(rec=>`
+      ${recs.map(({rec, idx})=>`
         <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;">
           <div class="next-badge" style="background:${DAY_COLORS[rec.day]}22;color:${DAY_COLORS[rec.day]};">${dayDisplay(rec.day)} · ${escapeHtml(rec.dayLabel||"")}</div>
-          <button type="button" class="tiny-btn accent" onclick="editDayRecord('${ex.id}','${dateKey}','${rec.day}')">✎ 編集</button>
+          <button type="button" class="tiny-btn accent" onclick="editDayRecord('${ex.id}','${dateKey}',${idx})">✎ 編集</button>
         </div>
         ${completedLogs(rec).map(l=>`
           <div class="plan-item">
@@ -2435,12 +2444,16 @@ function dayDetailAddHtml(dateKey){
    トレーニング入力
    ========================================================================= */
 /* editingDateKey: 日付を指定した入力（カレンダー経由）のときだけ入る。null＝今日の通常入力
-   editingExisting: 既存の記録を「✎ 編集」で開いたとき true（種目・DAYを固定する） */
-let inputState = { exId:null, day:"D1", entries:[], editingDateKey:null, editingExisting:false };
+   editingRecIdx : 保存先。-1 なら新規追加、0以上ならその日の記録配列の「その位置」を上書きする。
+                   ★ 同じ日・同じDAYでも、-1 のときは必ず追加する（上書きして前の記録を消さない）。
+                     上書きしてよいのは「✎ 編集」で特定の記録を開いたときだけ。
+   editingExisting: editingRecIdx>=0 と同義の表示用フラグ（見出しやボタン文言の出し分けに使う） */
+let inputState = { exId:null, day:"D1", entries:[], editingDateKey:null, editingExisting:false, editingRecIdx:-1 };
 
 function openWorkoutInput(){
   inputState.editingDateKey = null;
   inputState.editingExisting = false;
+  inputState.editingRecIdx = -1;
   const defaultEx = DATA.exercises.find(e=>e.id===inputState.exId) || DATA.exercises[0];
   if(!defaultEx) return;
   switchInputExercise(defaultEx.id);
@@ -2448,23 +2461,33 @@ function openWorkoutInput(){
 }
 /* 保存済みの記録を入力用のエントリに戻す */
 function entriesFromRec(exId, rec){
+  /* isMaxTest は記録側に持っていないので、テンプレートの同名項目から引き直す。
+     ここを false 固定にすると、保存済みの記録を開き直して Max測定 の重量を直しても
+     1RM が更新されない（記録だけ直って現在のMAXが取り残される）。 */
+  const tmplItems = ((DATA.templates[exId]||{})[rec.day]||{}).items || [];
+  const isMaxTestOf = name => !!(tmplItems.find(it =>
+    it.name===name || (it.variants||[]).includes(name)
+  )||{}).isMaxTest;
   return (rec.logs||[]).map(l=>({
     name:l.name, variants:null, plannedText:l.plannedText, rpeText:null,
-    hint:"", isMaxTest:false, mode:"fixed",
+    hint:"", isMaxTest:isMaxTestOf(l.name), mode:"fixed",
     hist: lastPerformed(exId, l.name, 3),
     sets: (l.sets||[]).map(s=>({weight:s.weight, reps:s.reps})),
     completed: l.completed, note: l.note||""
   }));
 }
 /* カレンダーの日別詳細シートから、過去の記録を編集する */
-function editDayRecord(exId, dateKey, day){
+/* recIdx はその日の記録配列の位置。同じDAYの記録が複数あっても取り違えないよう、
+   DAY ではなく位置で指定する。 */
+function editDayRecord(exId, dateKey, recIdx){
   const ex = DATA.exercises.find(e=>e.id===exId);
-  const rec = ((DATA.records[exId]||{})[dateKey]||[]).find(r=>r.day===day);
+  const rec = ((DATA.records[exId]||{})[dateKey]||[])[recIdx];
   if(!ex || !rec) return;
   inputState.exId = exId;
-  inputState.day = day;
+  inputState.day = rec.day;
   inputState.editingDateKey = dateKey;
   inputState.editingExisting = true;
+  inputState.editingRecIdx = recIdx;
   inputState.entries = entriesFromRec(exId, rec);
   closeSheet("detailSheet");
   renderInputSheet();
@@ -2477,6 +2500,7 @@ function addDayRecord(dateKey, exId){
   if(!ex) return;
   inputState.editingDateKey = dateKey;
   inputState.editingExisting = false;
+  inputState.editingRecIdx = -1;
   closeSheet("detailSheet");
   switchInputExercise(ex.id);
   openSheet("inputSheet");
@@ -2502,10 +2526,21 @@ function suggestDayForDate(exId, dateKey){
   return order[start];
 }
 /* 日付指定の入力：その日・その種目・そのDAYの記録が既にあれば復元、無ければテンプレートから組む */
+/* 日付指定の入力で、その日・そのDAYに記録が既にあれば読み込んで「その記録の編集」にする。
+   無ければテンプレートから新規に組み立て、保存時は追加になる（-1）。
+   ここで editingRecIdx を必ず設定し直すこと。取り違えると別の記録を上書きしてしまう。 */
 function loadEntriesForDate(exId, day, dateKey){
-  const rec = ((DATA.records[exId]||{})[dateKey]||[]).find(r=>r.day===day);
-  if(rec){ inputState.entries = entriesFromRec(exId, rec); return; }
+  const list = (DATA.records[exId]||{})[dateKey]||[];
+  const idx = list.findIndex(r=>r.day===day);
+  if(idx>=0){
+    inputState.entries = entriesFromRec(exId, list[idx]);
+    inputState.editingRecIdx = idx;
+    inputState.editingExisting = true;
+    return;
+  }
   buildInputEntries();
+  inputState.editingRecIdx = -1;
+  inputState.editingExisting = false;
 }
 /* 種目を切り替える。その種目の下書きが今日の日付なら復元、無ければ新規に組み立てる */
 function switchInputExercise(exId){
@@ -2517,6 +2552,9 @@ function switchInputExercise(exId){
     renderInputSheet();
     return;
   }
+  /* 今日の通常入力は常に「新規追加」。同じDAYの記録が既にあっても上書きしない。 */
+  inputState.editingRecIdx = -1;
+  inputState.editingExisting = false;
   const draft = (DATA.drafts||{})[exId];
   if(draft && draft.date===todayKey()){
     inputState.day = draft.day;
@@ -2585,34 +2623,37 @@ function lastPerformed(exId, name, n){
 }
 function renderInputSheet(){
   const ex = DATA.exercises.find(e=>e.id===inputState.exId);
-  const dated = !!inputState.editingDateKey;       // 日付を指定した入力
-  const locked = dated && inputState.editingExisting; // 既存記録の編集＝種目・DAYは固定
+  const dated = !!inputState.editingDateKey;        // 日付を指定した入力
+  const editing = inputState.editingRecIdx >= 0;    // 既存の記録を上書きする状態か
 
+  /* 種目・DAY のセレクタは常に出す。以前は「✎ 編集」で開くと隠していたため、
+     その画面から別種目の記録を足せなかった。切り替えれば loadEntriesForDate() が
+     保存先（editingRecIdx）を取り直すので、別の記録を壊す心配はない。 */
   document.getElementById("inputSheetTitle").textContent =
-    locked ? "記録を編集" : dated ? "記録を追加" : "今日のトレーニング";
+    editing ? "記録を編集" : dated ? "記録を追加" : "今日のトレーニング";
   document.getElementById("inputSaveBtn").textContent =
-    locked ? "この内容で更新する" : dated ? "この日の記録を保存" : "この内容で保存";
+    editing ? "この内容で更新する" : dated ? "この日の記録を保存" : "この内容で保存";
 
   const editLabel = document.getElementById("inputEditLabel");
   if(dated){
     const d = new Date(inputState.editingDateKey);
     const md = `${d.getMonth()+1}月${d.getDate()}日`;
     editLabel.style.display = "block";
-    editLabel.textContent = locked
-      ? `✎ ${md} ・ ${ex.name} ・ ${dayDisplay(inputState.day)} を編集中`
+    editLabel.textContent = editing
+      ? `✎ ${md} ・ ${ex.name} ・ ${dayDisplay(inputState.day)} の記録を編集中（種目とDAYを切り替えられます）`
       : `＋ ${md} の記録を入力中（種目とDAYを選べます）`;
   }else{
     editLabel.style.display = "none";
   }
 
   const exSeg = document.getElementById("inputExSeg");
-  exSeg.style.display = locked ? "none" : "flex";
+  exSeg.style.display = "flex";
   exSeg.innerHTML = DATA.exercises.map(e2=>`
     <button class="${inputState.exId===e2.id?"active":""}" style="${inputState.exId===e2.id?"background:linear-gradient(135deg, var(--accent), var(--accent-2));":""}" onclick="switchInputExercise('${e2.id}')">${escapeHtml(e2.name)}</button>
   `).join("");
 
   const seg = document.getElementById("inputDaySeg");
-  seg.style.display = locked ? "none" : "flex";
+  seg.style.display = "flex";
   seg.innerHTML = ["D1","D2","D3"].map(d=>`
     <button class="${inputState.day===d?"active":""}" style="${inputState.day===d?`background:${DAY_COLORS[d]}`:""}" onclick="switchInputDay('${d}')">${dayDisplay(d)}</button>
   `).join("");
@@ -2658,8 +2699,14 @@ function renderInputSheet(){
 function switchInputDay(d){
   inputState.day = d;
   /* 日付指定の入力では、その日にそのDAYの記録が既にあれば読み込んで編集にする */
-  if(inputState.editingDateKey) loadEntriesForDate(inputState.exId, d, inputState.editingDateKey);
-  else buildInputEntries();
+  if(inputState.editingDateKey){
+    loadEntriesForDate(inputState.exId, d, inputState.editingDateKey);
+  }else{
+    /* 今日の通常入力は常に新規追加。同じDAYの記録が既にあっても上書きしない。 */
+    buildInputEntries();
+    inputState.editingRecIdx = -1;
+    inputState.editingExisting = false;
+  }
   renderInputSheet();
   saveDraft();
 }
@@ -2735,10 +2782,14 @@ function saveWorkout(){
       completed:e.completed, note:e.note
     }))
   };
-  // 同じ日に同じDAYを再入力した場合はその記録だけ更新、別DAYなら追加（他DAYの記録は消さない）
+  /* ★ 記録を消さないための決まり
+     「✎ 編集」で特定の記録を開いたとき（editingRecIdx>=0）だけ、その記録を上書きする。
+     それ以外は必ず追加する。同じ日に同じDAYをもう一度やっても、前の記録は消さない。
+     （以前は day で一致検索して上書きしていたため、同じDAYを再入力すると前回が消えていた） */
   const dayList = DATA.records[ex.id][key];
-  const existingIdx = dayList.findIndex(r=>r.day===inputState.day);
-  if(existingIdx>=0) dayList[existingIdx] = newRec; else dayList.push(newRec);
+  const idx = inputState.editingRecIdx;
+  if(idx>=0 && idx<dayList.length) dayList[idx] = newRec;
+  else dayList.push(newRec);
 
   // この保存でその週がDAY1〜3コンプリートになったか
   const comboAchieved = !comboBefore && isFullComboWeek(ex.id, weekStartOfKey);
@@ -2770,6 +2821,7 @@ function saveWorkout(){
   const wasExisting = inputState.editingExisting;
   inputState.editingDateKey = null;
   inputState.editingExisting = false;
+  inputState.editingRecIdx = -1;
 
   /* チェックが1つも入っていない＝その種目はやっていないので、未実施として扱われることを伝える
      （記録自体は残るので、チェックを入れ直せば元に戻る） */
